@@ -1,0 +1,221 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: rgb(0, 0, 0);
+    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 1rem;
+    margin: 0;
+}
+
+.app {
+    display: flex;  
+    max-width: 1200px;
+    width: 100%;
+}
+
+.randomseed {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #00ccff80;
+}
+
+.saves {
+    max-width: 1200px;
+    width: 100%;
+    background: #111;
+    border: 2.4px solid #ccc;
+    padding: 24px 14px;
+    color: #ffffff;
+    display: flex;
+    flex-wrap: wrap;      /* 允许子元素换行 */
+    gap: 10px;  
+    
+}
+
+.replay {
+    max-width: 1200px;
+    width: 100%;
+    background: #111;
+    border: 2.4px solid #ccc;
+    padding: 24px 14px;
+    color: #ffffff;
+    display: flex;
+    flex-wrap: wrap;      /* 允许子元素换行 */
+    gap: 10px;  
+    
+}
+
+/* 信息面板 — 极简无圆角，无渐变 */
+.sidebar {
+    width: 30%;
+    background: #111;
+    border: 2.4px solid #ccc;
+    padding: 24px 14px;
+    display: flex;
+    flex-direction: column;
+    color: #ffffff;
+    align-self: stretch;
+    overflow-y: auto;        /* 内容过长时显示垂直滚动条 */
+}
+
+p[contenteditable=true]{
+    padding:2px;
+}
+
+.save-button {
+    background: #111;
+    border: 2.4px solid #fff;
+    color: #ffffff;
+    padding: 5px;
+}
+button {
+  border-radius: 0;
+  background: none;
+  border: 1px solid white;
+  color: white;
+  padding: 3px;
+  /* 可选：重置padding/margin/font等，但题目没要求，保留浏览器默认或根据需要 */
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn:active {
+    background: #ccc;
+    border-color: #ffffff;
+}
+
+/* 楼层容器 — 垂直排列，居中 */
+.layers-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    gap: 1.8rem;
+    width: 100%;
+}
+
+.layer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.layer-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: #0cf;
+    padding-bottom: 2px;
+    display: inline-block;
+    letter-spacing: 1px;
+}
+
+/* SVG 房间画布：背景灰色 = 网格线，无圆角，直角硬边 */
+.console {   /* 缝隙灰 */
+    border: 1px solid #0cf;
+    width: 100%;      
+    cursor: pointer;
+}
+
+svg text {
+    user-select: none;
+}
+
+svg {
+    overflow: visible;
+}
+
+.replay-round {
+    width:100%;
+    display:flex;
+    padding:4px;
+    border: 1px dashed #777;
+}
+
+.replay-bcast {
+    width: 40%;
+}
+
+.replay-graph {
+    width: 60%;
+}
+
+/* 极简辅助文本 */
+.footer-note {
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: #ccc;
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+    width: 100%;
+    text-align: center;
+}
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #00000080;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+/* 弹窗内容容器 */
+.popup-container {
+    background-color: #000;
+    padding: 20px;
+    max-width: 80%;
+    min-width: 60%;
+    max-height: 80%;
+    min-width: 40%;
+    border: 2px solid #fff;
+    overflow: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 弹窗头部 */
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* 标题 */
+.popup-title {
+    margin: 0;
+}
+
+.popup-buttons {
+    margin: 10px 0 0 0;
+}
+
+/* 关闭按钮 */
+.popup-close-btn {
+    font-size: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+/* 完全避免圆角，任何地方都是直角 */
+hr {
+    border: none;
+    border-top: 2px solid #ffffff;
+}
