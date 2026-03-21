@@ -3063,7 +3063,7 @@ function mainMain() {
     window.addEventListener('beforeunload', (event) => {
         event.preventDefault();
         event.returnValue = '';
-        return '';浏览器需要
+        return '';
     });
 }
 
