@@ -1031,6 +1031,12 @@ function mainMain() {
             showEditor(mapMap);
         });
 
+        buttonDiv.appendChild(document.createElement('br'));
+
+        getButton('#fff','恢复数据',()=>{
+            recoverGame();
+        });
+
         LocMaskEvent([
             {
                 ty: 'click',
@@ -1084,15 +1090,17 @@ function mainMain() {
         });
     }
     
-    function getButton(color,name,lamda){
+    function getButton(color,name,lamda,attach=true){
         let newButton=document.createElement('button');
         newButton.setAttribute('class','moveButton');
         newButton.textContent=name;
         newButton.style.border=`1px solid ${color}`;
         newButton.style.color=color;
         newButton.addEventListener('click',lamda);
-        let buttonDiv=document.getElementById('buttonDiv');
-        buttonDiv.appendChild(newButton);
+        if(attach){
+            let buttonDiv=document.getElementById('buttonDiv');
+            buttonDiv.appendChild(newButton);
+        }
         return newButton;
     }
 
@@ -1705,6 +1713,7 @@ function mainMain() {
         let carrier=document.getElementById('carrier');
         copySvgAsPngToClipboard(carrier);
         saveMap(`R${mapMap.Round}`);
+        saveGame();
         mapMap.Players.forEach((player) => {
             let Loc0=player.Loc;
             mapMap.Locs.find((loc) => loc.id == Loc0).visPlayer.push(player.id);
@@ -2635,6 +2644,100 @@ function mainMain() {
         switchNormalMode();
     }
 
+    function recoverGame(){
+        const existing = document.getElementById('broadcastPopupOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'broadcastPopupOverlay';
+        overlay.className = 'popup-overlay';
+
+        const popup = document.createElement('div');
+        popup.className = 'popup-container';
+
+        const header = document.createElement('div');
+        header.className = 'popup-header';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'broadcasts';
+        contentDiv.innerHTML = bd1.innerHTML;
+
+        popup.appendChild(header);
+        popup.appendChild(contentDiv);
+
+        let text1=document.createElement('text');
+        text1.innerText="请选择记录来加载：";
+        text1.style.color="#fff";
+        contentDiv.appendChild(text1);
+
+        let datalistdiv=document.createElement('div');
+        datalistdiv.setAttribute('class','modlist');
+        Object.keys(localStorage).forEach((data)=>{
+            let ddiv=document.createElement('div');
+            let alldata=JSON.parse(localStorage.getItem(data));
+            console.log(data);
+            ddiv.innerText=data+"-"+alldata.timestamp;
+            ddiv.style.color="#fff";
+            ddiv.appendChild(getButton("#fff","加载",()=>{
+                alldata.lis.forEach((li)=>{
+                    const parser = new DOMParser();
+                    let button=parser.parseFromString(li.html, 'text/html').body.firstChild;
+                    button.mapMap=li.map;
+                    button.broadcasts=li.bc;
+                    let saves=document.querySelector('.saves');
+                    saves.appendChild(button);
+                    button.addEventListener('click', () => {
+                        loadMap(button.mapMap,button.broadcasts);
+                    });
+                });
+                overlay.remove();
+            },false));
+            ddiv.appendChild(getButton("#fff","删除",()=>{
+                localStorage.removeItem(data);
+                recoverGame();
+            },false));
+            datalistdiv.appendChild(ddiv);
+        });
+
+        contentDiv.appendChild(datalistdiv);
+
+        if (navigator.storage && navigator.storage.estimate) {
+            let text2=document.createElement('div');
+            text2.style.color="#fff";
+            navigator.storage.estimate().then(estimate => {
+                console.log(estimate);
+                text2.innerText = `已用空间: ${estimate.usage}/${estimate.quota}`;
+            });
+            contentDiv.appendChild(text2);
+        }
+
+        let closeButton = document.createElement('button');
+        closeButton.innerText = '返回';
+        closeButton.setAttribute("id","closeButton");
+        closeButton.addEventListener('click', () => {
+            overlay.remove();
+        });
+        contentDiv.appendChild(closeButton);
+
+        popup.appendChild(contentDiv);
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+
+        console.log(overlay);
+    }
+
+    function saveGame(){
+        let lblist=[];
+        document.querySelectorAll('.save-button').forEach((button)=>{
+            lblist.push({map:button.mapMap,bc:button.broadcasts,html:button.outerHTML});
+        });
+        let name=mapMap.seed;
+        console.log(lblist);
+        localStorage.setItem(name,JSON.stringify({timestamp:moment().format('HH:mm:ss(YYYY/MM/DD)'),lis:lblist}));
+        console.log(localStorage.getItem(name));
+    }
+
     function setSteps(chara,steps){
         mapMap.Players.forEach((player)=>{
             if(player.character==chara){
@@ -2957,11 +3060,11 @@ function mainMain() {
     });
 
     title();
-    // window.addEventListener('beforeunload', (event) => {
-    //     event.preventDefault();
-    //     event.returnValue = '';
-    //     return '';浏览器需要
-    // });
+    window.addEventListener('beforeunload', (event) => {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';浏览器需要
+    });
 }
 
 mainMain();
