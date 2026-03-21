@@ -2679,12 +2679,13 @@ function mainMain() {
             ddiv.innerText=data+"-"+alldata.timestamp;
             ddiv.style.color="#fff";
             ddiv.appendChild(getButton("#fff","加载",()=>{
+                let saves=document.querySelector('.saves');
                 alldata.lis.forEach((li)=>{
                     const parser = new DOMParser();
                     let button=parser.parseFromString(li.html, 'text/html').body.firstChild;
                     button.mapMap=li.map;
                     button.broadcasts=li.bc;
-                    let saves=document.querySelector('.saves');
+                    saves.innerHTML="";
                     saves.appendChild(button);
                     button.addEventListener('click', () => {
                         loadMap(button.mapMap,button.broadcasts);
