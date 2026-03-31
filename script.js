@@ -331,6 +331,15 @@ function mainMain() {
         return str.replace(/（.*?）/g,"");
     }
     
+    // function initDB(){
+    //     var request = indexedDB.open('myDatabase', 1);
+    //     request.onupgradeneeded = function(event) {
+    //         var db = event.target.result;
+    //         var saves= db.createObjectStore('saves', { keyPath: 'id' });
+    //         saves.createIndex('val', 'val', { unique: false });
+    //     };
+    // }
+
     function title(){
         loadMods();
         setseed("forever");
@@ -398,20 +407,13 @@ function mainMain() {
         // let rpdiv=document.querySelector(".replay");
         // rpdiv.appendChild(rpbutton);
     }
-    async function initMapData(Players0) {
-        try {
-            const response = await fetch('map.json');
 
-            if (!response.ok) {
-                throw new Error(`加载地图失败: ${response.status}`);
-            }
-
-            let mapData = await response.json();
-
-            for(let i=0;i<mapData.LocRectangles.length;i++){
-                let cur=mapData.LocRectangles[i];
-                let x0=mapData.floors.find((ele)=>ele.id==cur.floor).x;
-                let y0=mapData.floors.find((ele)=>ele.id==cur.floor).y;
+    function initLocs(){
+        if(mapMap.LocRectangles){
+            for(let i=0;i<mapMap.LocRectangles.length;i++){
+                let cur=mapMap.LocRectangles[i];
+                let x0=mapMap.floors.find((ele)=>ele.id==cur.floor).x;
+                let y0=mapMap.floors.find((ele)=>ele.id==cur.floor).y;
                 let loc0={};
                 loc0.id=cur.id;
                 loc0.vertices=[];
@@ -422,33 +424,48 @@ function mainMain() {
                 loc0.visPlayer=cur.visPlayer||[];
                 loc0.centerOri=cur.centerOri;
                 loc0.floor=cur.floor;
-                mapData.Locs.push(loc0);
+                mapMap.Locs.push(loc0);
+            }
+        }
+
+        Reflect.deleteProperty(mapMap, 'LocRectangles');
+
+        mapMap.Locs.forEach((Loc0) => {
+            if(Loc0.centerOri==null){
+                let cx=0,cy=0,len=Loc0.vertices.length;
+                Loc0.vertices.forEach((v) => {
+                    cx+=v[0];
+                    cy+=v[1];
+                });
+                Loc0.center=[cx/len,cy/len];
+                Reflect.deleteProperty(Loc0,"centerOri");
+            }
+            else{
+                let floor0=mapMap.floors.find((ele)=>ele.id==Loc0.floor);
+                Loc0.center=[Loc0.centerOri[0]+floor0.x,Loc0.centerOri[1]+floor0.y];
+                Loc0.vertices.forEach((v) => {
+                    v=[v+floor0.x,v+floor0.y];
+                });
+                Reflect.deleteProperty(Loc0,"centerOri");
+            }
+            Loc0.rom=Loc0.id;
+        });
+    }
+
+
+    async function initMapData(Players0) {
+        try {
+            const response = await fetch('map.json');
+
+            if (!response.ok) {
+                throw new Error(`加载地图失败: ${response.status}`);
             }
 
-            Reflect.deleteProperty(mapData, 'LocRectangles');
-
-            mapData.Locs.forEach((Loc0) => {
-                if(Loc0.centerOri==null){
-                    let cx=0,cy=0,len=Loc0.vertices.length;
-                    Loc0.vertices.forEach((v) => {
-                        cx+=v[0];
-                        cy+=v[1];
-                    });
-                    Loc0.center=[cx/len,cy/len];
-                    Reflect.deleteProperty(Loc0,"centerOri");
-                }
-                else{
-                    let floor0=mapData.floors.find((ele)=>ele.id==Loc0.floor);
-                    Loc0.center=[Loc0.centerOri[0]+floor0.x,Loc0.centerOri[1]+floor0.y];
-                    Loc0.vertices.forEach((v) => {
-                        v=[v+floor0.x,v+floor0.y];
-                    });
-                    Reflect.deleteProperty(Loc0,"centerOri");
-                }
-                Loc0.rom=Loc0.id;
-            });
+            let mapData = await response.json();
 
             Object.assign(mapMap,mapData);
+
+            initLocs();
 
             mapMap.Players=Players0;
 
@@ -1048,6 +1065,7 @@ function mainMain() {
                 }
             }
         ]);
+        ModsStependEvent();
     }
 
     function defaultLocMaskAction(Loc0){
@@ -1235,6 +1253,7 @@ function mainMain() {
             else player.avoid.push(rom0);
             jumpAccordSTATUS();
         });
+        ModsStependEvent();
     }
     function LocMaskEvent(list){
         let g=document.getElementById(`gMask`);
@@ -1435,6 +1454,22 @@ function mainMain() {
             switchMoveMode(player,true);
         });
 
+        getButton(tinycolor.mix(player.color,'#fff',50),'加标记',()=>{
+            let str=prompt('请输入物品名。');
+            if(!str)return;
+            str=str.trim();
+            if(!str)return;
+            let color0=getColor();
+            if(!color0)return;
+            addItems([{
+                name:str,
+                ty:"Player",
+                val:player.id,
+                color:color0
+            }]);
+            jumpAccordSTATUS();
+        });
+
         LocMaskEvent([
             {
                 ty: 'mouseenter',
@@ -1478,6 +1513,7 @@ function mainMain() {
                 }
             }
         ]);
+        ModsStependEvent();
         // let info=document.getElementById("info-content");
         // info.innerHTML='你正在操作'+player.name+'，点击其所在房间撤销行动，点击其他房间进行移动。';
         // let color0=tinycolor.mix(player.color,'#fff',50);
@@ -1644,6 +1680,7 @@ function mainMain() {
     function drawMateInfo(player,stp0){
         let mates=[];
         mapMap.Players.forEach((player0)=>{
+            if(player0.dead)return;
             if(player0.id==player.id)return;
             if(player0.Loclast!=player.Loclast)return;
             let stpUsed=0;
@@ -2484,7 +2521,7 @@ function mainMain() {
         overlay.appendChild(popup);
         document.body.appendChild(overlay);
 
-        console.log(overlay);
+        //console.log(overlay);
     };
 
     // ----- 弹窗函数：编辑 mapMap 的 JSON 数据 -----
@@ -2736,7 +2773,7 @@ function mainMain() {
         let name=mapMap.seed;
         console.log(lblist);
         localStorage.setItem(name,JSON.stringify({timestamp:moment().format('HH:mm:ss(YYYY/MM/DD)'),lis:lblist}));
-        console.log(localStorage.getItem(name));
+        //console.log(localStorage.getItem(name));
     }
 
     function setSteps(chara,steps){
@@ -2800,6 +2837,8 @@ function mainMain() {
 
     let roundendevents=[];
 
+    let stependevents=[];
+
     function ModsInitEvent(){
         console.log(mapMap);
         initevents.sort((a,b)=>a.priority-b.priority);
@@ -2810,6 +2849,12 @@ function mainMain() {
     function ModsRoundendEvent(){
         roundendevents.sort((a,b)=>a.priority-b.priority);
         roundendevents.forEach((ele)=>{
+            ele.fun();
+        })
+    }
+    function ModsStependEvent(){
+        stependevents.sort((a,b)=>a.priority-b.priority);
+        stependevents.forEach((ele)=>{
             ele.fun();
         })
     }
@@ -2826,7 +2871,8 @@ function mainMain() {
         mods.forEach((mod)=>{
             console.log(mod.name);
             Object.assign(mapMap.broadcasts,mod.broadcasts);
-            modlist=modlist.concat(mod.list);
+            if(!mod.notdefault)modlist=modlist.concat(mod.list);
+            else modlistban=modlistban.concat(mod.list);
         });
     }
 
@@ -2937,6 +2983,10 @@ function mainMain() {
                     console.log(ele[key]);
                     roundendevents.push(ele[key]);
                 }
+                if(key2=="stepend"){
+                    console.log(ele[key]);
+                    stependevents.push(ele[key]);
+                }
             });
         });
         Mods.mechan.info.push({default:true,lamda:(item)=>{
@@ -3029,7 +3079,7 @@ function mainMain() {
     function RANDOM(){
         const rng = new Math.seedrandom("", { state: mapMap.rngstate });
         let val=rng();
-        console.log(val);
+        //console.log(val);
         mapMap.rngstate=rng.state();
         return val;
     }
@@ -3048,7 +3098,7 @@ function mainMain() {
     Object.assign(compack, {
         randomInt, hsv2rgb, getStrSize, createPolygon, getMida, getLine, getLineDim,
         getDoor, getNotPortal, getPortal, hexarc, getLocenter, getPath, getImageUrlFromSvg, copySvgAsPngToClipboard,
-        isValidCSSColor, shareEdge, swapRom, eraseBracket, title, initMapData, createG,
+        isValidCSSColor, shareEdge, swapRom, eraseBracket, title, initLocs, initMapData, createG,
         initDoor, drawDoor, initPlayers, addItems, getLoc, setDoor, drawNames, getCross,
         clearMechan, drawPlayers, switchNormalMode, defaultLocMaskAction, getButton,
         switchRoundMode, LocMaskEvent, reAttriAllPolygons, isNum, isSubseq, getLocorRom,
@@ -3061,11 +3111,11 @@ function mainMain() {
     });
 
     title();
-    window.addEventListener('beforeunload', (event) => {
-        event.preventDefault();
-        event.returnValue = '';
-        return '';
-    });
+    // window.addEventListener('beforeunload', (event) => {
+    //     event.preventDefault();
+    //     event.returnValue = '';
+    //     return '';
+    // });
 }
 
 mainMain();

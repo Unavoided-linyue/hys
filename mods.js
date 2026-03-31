@@ -5,6 +5,7 @@ let mods = (main)=>{
 
     function roomArrange(shuffle=true){
         if(shuffle){
+            console.log('打乱房间');
             for(let i=1;i<=mapMap.Locs.length;i++){
                 let des=Math.floor(main.RANDOM()*i)+1;
                 let Loc0=mapMap.Locs.find((ele)=>ele.id==i);
@@ -535,16 +536,17 @@ let mods = (main)=>{
                 },
                 {
                     name:"开锁器生成",
-                    init:{
-                        priority:0,
+                    roundend:{
+                        priority:100000000,
                         fun:()=>{
+                            if(mapMap.Round!=-1)return;
                             let lis=[];
                             for(let iii=1;iii<=3;iii++){
                                 let Loc7=mapMap.Locs.find(Loc=>Loc.rom==7).id;
                                 let dis=main.caculateDis(Loc7);
                                 let ge3=[];
                                 mapMap.Locs.forEach((ele)=>{
-                                    if(!dis.get(ele.id)||dis.get(ele.id)>3)ge3.push(ele.rom);
+                                    if(dis.get(ele.id)===null||dis.get(ele.id)>3)ge3.push(ele.rom);
                                 });
                                 let rom0=ge3.length?ge3[Math.floor(main.RANDOM()*ge3.length)]:1;
                                 lis.push({"Rom":rom0,"color":4,"name":"开锁","static":true});
@@ -611,6 +613,15 @@ let mods = (main)=>{
                         fun:()=>{
                             main.addItems([{"Rom":36,"color":7,"name":"十字","static":true,"keepInventory":true}]);
                         }
+                    },
+                    item:{
+                        cond:(item)=>item.name=='十字',
+                        result:(item)=>{
+                            //console.log("???");
+                            if(item.ty!="Rom"){
+                                updateStage(2);
+                            }
+                        }
                     }
                 },
                 {
@@ -656,11 +667,14 @@ let mods = (main)=>{
                                 div.className="player";
                                 div.style.display="inline-block";
                                 div.style.marginRight="7px";
-                                let name=document.createElement('text');
-                                name.innerText=`${player.name}`;
-                                name.style.color=player.color;
-                                name.style.display="table";
-                                name.style.margin="0 auto";
+                                let name=main.getbcdiv(`${player.name} “${player.color}”`,(text,div)=>(()=>{
+                                    let str=text.innerText;
+                                    if(!str.trim()){
+                                        text.innerText=player.name;
+                                        return;
+                                    }
+                                    player.name=str;
+                                }));
                                 let chara=main.getbcdiv(`${player.character} “${player.color}”`,(text,div)=>(()=>{
                                     let str=text.innerText;
                                     if(!str.trim()){
@@ -671,7 +685,6 @@ let mods = (main)=>{
                                 }));
                                 chara.style.display="table";
                                 chara.style.margin="0 auto";
-
                                 div.appendChild(name);
                                 div.appendChild(chara);
                                 contentDiv.appendChild(div);
@@ -754,6 +767,7 @@ let mods = (main)=>{
                                         main.addItems([{
                                             "name":'手枪',
                                             "Player":player.id,
+                                            "keepInventory":true,
                                             "color":1,
                                             "static":true
                                         }]);
@@ -773,7 +787,7 @@ let mods = (main)=>{
                         }
                     },
                     roundend:{
-                        priority:1,
+                        priority:100000000000,
                         fun:()=>{
                             mapMap.ModsData.stagesep.forEach((sep,index)=>{
                                 if(mapMap.Round>=sep)updateStage(index+1);
@@ -782,6 +796,10 @@ let mods = (main)=>{
                             mapMap.Players.forEach((player)=>{
                                 if(player.character=="玩家"&&(!player.dead||player.fakedead)){
                                     placnt++;
+                                }
+                                if(player.character=="黑影"&&player.dead){
+                                    player.dead=false;
+                                    player.Loc=mapMap.Locs.find(Loc=>Loc.rom==14).id||player.Loc;
                                 }
                             });
                             console.log(placnt);
@@ -854,7 +872,8 @@ let mods = (main)=>{
                                 });
                                 mapMap.Players.forEach((player)=>{
                                     let lim=Math.min(mapMap.Round*2,mapMap.Locs.length);
-                                    let arr=[];for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
+                                    let arr=[];if(player.dead&&player.character!="黑影")return;
+                                    for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
                                     arr.sort(()=>main.RANDOM()-0.5);
                                     for(let i=0;i<lim;i++){
                                         mapMap.Locs.find((ele)=>ele.id==arr[i]).visPlayer.push(player.id);
@@ -877,6 +896,136 @@ let mods = (main)=>{
                                 bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
                                 main.broadcast(bc);
                             }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            name:"否极泰来",
+            notdefault:true,
+            list:[
+                {
+                    name:"否极泰来",
+                    init:{
+                        priority:1000,
+                        fun:()=>{
+                            mapMap.Locs.forEach((Loc)=>{
+                                Loc.vertices.forEach((v0)=>{
+                                    if(Loc.floor<=3)Loc.floor+=3;
+                                    else Loc.floor-=3;
+                                })
+                            });
+                            mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(22,30)),1);
+                            mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(15,24)),1);
+                            mapMap.Doors.push({"Loc1":8,"Loc2":48});
+                            mapMap.ModsData.doorstorecover=[
+                                {"Loc1":8,"Loc2":9,"type":"stair"},
+                                {"Loc1":31,"Loc2":48,"type":"stair"}
+                            ];
+                            main.initLocs();
+                        }
+                    },
+                }
+            ]
+        },
+        {
+            name:"DATA",
+            notdefault:true,
+            list:[
+                {
+                    name:"DATA",
+                    roundend:{
+                        priority:10,
+                        fun:()=>{
+                            if(mapMap.Round>=-1){
+                                let lis=[];
+                                if(mapMap.Round%2==0){
+                                    mapMap.Players.forEach((ele)=>{
+                                        if(ele.dead)return;
+                                        if(ele.character!="黑影"){
+                                            lis.push(ele.Loc);
+                                        }
+                                    });
+                                }
+                                else if(mapMap.Round%2==1){
+                                    mapMap.Players.forEach((ele)=>{
+                                        if(ele.dead)return;
+                                        if(ele.character=="黑影"){
+                                            lis.push(ele.Loc);
+                                        }
+                                    });
+                                }
+                                lis.sort((a,b)=>a-b);
+                                let bc=main.getbc("round");
+                                bc=bc.replace("[end]",mapMap.Round);
+                                bc=bc.replace("[begin]",mapMap.Round+1);
+                                bc=bc.replace("[char]",`位于${lis.join(" ")}的人`);
+                                bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
+                                main.broadcast(bc);
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            name:"毒气",
+            notdefault:true,
+            list:[
+                {
+                    name:"毒气",
+                    stepend:{
+                        priority:100,
+                        fun:()=>{
+                            let hasgas=new Map();
+                            mapMap.items.forEach((item)=>{
+                                if(item.name.includes("毒气")){
+                                    let loc0=main.getLoc({ty:item.ty,val:item.val});
+                                    //console.log(loc0);
+                                    if(!loc0)return;
+                                    hasgas.set(loc0,true);
+                                }
+                            });
+                            //console.log(hasgas);
+                            let neighbor=[];
+                            mapMap.Locs.forEach((loc)=>{
+                                if(hasgas.get(loc.id))return;
+                                let flag=false;
+                                mapMap.Locs.forEach((ele)=>{
+                                    if(!hasgas.get(ele.id))return;
+                                    if(!main.getDoor(loc.id,ele.id))return;
+                                    //console.log(loc.id,ele.id);
+                                    flag=true;
+                                });
+                                if(flag)neighbor.push(loc.id);
+                            });
+                            //console.log(neighbor);
+                            mapMap.ModsData.gasneighbor=neighbor;
+                            if(!neighbor.length)return;
+                            document.querySelectorAll(".gas").forEach((ele)=>ele.remove());
+                            let ggas=document.createElementNS("http://www.w3.org/2000/svg","g");
+                            ggas.setAttribute("class","gas");
+                            let tag=document.querySelector(".console");
+                            tag.appendChild(ggas);
+                            document.querySelectorAll(".LocPolygon").forEach((ele)=>{
+                                if(!neighbor.includes(parseInt(ele.getAttribute("data-index"))))return;
+                                let poly0=ele.cloneNode(true);
+                                poly0.setAttribute("class","gasPoly");
+                                poly0.setAttribute("fill",mapMap.COLOR_DEFAULT[4]);
+                                poly0.setAttribute("fill-opacity",0.5/neighbor.length+0.2);
+                                poly0.setAttribute("stroke-width",0);
+                                poly0.setAttribute("pointer-events","none");
+                                ggas.appendChild(poly0);
+                            });
+                        }
+                    },
+                    roundend:{
+                        priority:100,
+                        fun:()=>{
+                            let neighbor=mapMap.ModsData.gasneighbor;
+                            let des=neighbor[Math.floor(main.RANDOM()*neighbor.length)];
+                            main.addItems([{"Loc":des,"color":4,"name":`毒气${mapMap.Round}`}]);
                         }
                     }
                 }
