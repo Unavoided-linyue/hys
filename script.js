@@ -510,15 +510,6 @@ function mainMain() {
         button0.addEventListener('click',async ()=>{
             button0.style.display="none";
 
-            let lasConfig={
-                seed:mapMap.seed,
-                plastr:mapMap.plastr,
-                itmstr:mapMap.itmstr,
-                ModsConfig:mapMap.ModsConfig,
-            };
-
-            localStorage.setItem("lastConfig",JSON.stringify(lasConfig));
-
             if(!mapMap.seed){
                 alert("种子不能为空。");
                 button0.style.display="";
@@ -529,6 +520,16 @@ function mainMain() {
                 button0.style.display="";
                 return;
             }
+
+            let lasConfig={
+                seed:mapMap.seed,
+                plastr:mapMap.plastr,
+                itmstr:mapMap.itmstr,
+                ModsConfig:mapMap.ModsConfig,
+            };
+
+            localStorage.setItem("lastConfig",JSON.stringify(lasConfig));
+            
             setseed(mapMap.seed);
 
             const response = await fetch('map.json');
@@ -1243,7 +1244,7 @@ function mainMain() {
         itemslis.appendChild(il0);
 
         let button0=document.createElement('button');
-        button0.textContent="开始游戏";
+        button0.textContent="完成";
         button0.style.marginTop="3px";
         button0.addEventListener('click',()=>{
             let items = mapMap.itmstr.trim().split(/\r?\n/);
