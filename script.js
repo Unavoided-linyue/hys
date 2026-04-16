@@ -325,42 +325,239 @@ function mainMain() {
         
     }
 
-    
-
     function eraseBracket(str){
         return str.replace(/（.*?）/g,"");
     }
     
-    // function initDB(){
-    //     var request = indexedDB.open('myDatabase', 1);
-    //     request.onupgradeneeded = function(event) {
-    //         var db = event.target.result;
-    //         var saves= db.createObjectStore('saves', { keyPath: 'id' });
-    //         saves.createIndex('val', 'val', { unique: false });
-    //     };
-    // }
+    let DB=null;
 
-    function title(){
-        loadMods();
-        setseed("forever");
+    function initDB(){
+        var request = indexedDB.open('myDatabase', 1);
+        request.onupgradeneeded = function(event) {
+            var db = event.target.result;
+            var saves= db.createObjectStore('saves', { keyPath: 'id' });
+            saves.createIndex('val', 'val', { unique: false });
+        };
+        return new Promise((resolve)=>{
+            request.onsuccess = function(event) {
+                DB = event.target.result;
+                resolve();
+            };
+        });
+    }
 
-        const img = document.createElement('img');
-        img.src = 'title.png';
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '100%';
-        document.getElementById('layersContainer').appendChild(img);
-        let infop1=document.getElementById('infop1');
+    function parseItem(str){
+        let parts=str.trim().split(' ');
+        console.log(parts);
+        if(parts.length<3)return null;
+        let lor=getLocorRom(parts[0]);
+        if(!lor)return null;
+        let item={};
+        if(lor.ty=="Loc")item.Loc=lor.val;
+        if(lor.ty=="Rom")item.Rom=lor.val;
+        item.color=parseColor(parts[2]);
+        item.name=parts[1];
+        let strc=parts[3]||"";
+        if(strc.includes("S"))item.static=true;
+        if(strc.includes("M"))item.type="机关";
+        if(strc.includes("K"))item.keepInventory=true;
+        if(strc.includes("I"))item.invisible=true;
+        if(strc.includes("V"))item.alwayVisibie=true;
+        console.log(item);
+        return item;
+    }
+
+    function gameinit(){
+        const existing = document.getElementById('broadcastPopupOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'broadcastPopupOverlay';
+        overlay.className = 'popup-overlay';
+
+        const popup = document.createElement('div');
+        popup.className = 'popup-container';
+
+        const header = document.createElement('div');
+        header.className = 'popup-header';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'broadcasts';
+
+        let buttonrec=document.createElement('button');
+        buttonrec.textContent="使用上局设定";
+        buttonrec.addEventListener('click',()=>{
+            let las=localStorage.getItem("lastConfig");
+            if(!las){
+                alert("没有上局设定。");
+                return;
+            }
+            let lasConfig=JSON.parse(las);
+            console.log(lasConfig);
+            mapMap.seed=lasConfig.seed;
+            mapMap.plastr=lasConfig.plastr;
+            mapMap.itmstr=lasConfig.itmstr;
+            mapMap.ModsConfig=lasConfig.ModsConfig;
+            gameinit();
+        });
+
+        contentDiv.appendChild(buttonrec);
+
+        let seeddiv=document.createElement('div');
+        seeddiv.style.color="#0cf";
+        seeddiv.style.display="flex";
+        contentDiv.appendChild(seeddiv);
+        let setsseed=document.createElement('p');
+        setsseed.innerText="随机种子：";
+        seeddiv.appendChild(setsseed);
+        let seed=document.createElement('p');
+        seed.setAttribute("contenteditable","true");
+        seed.innerText=mapMap.seed||'';
+        seed.addEventListener('keydown',(e)=>{
+            if(e.key=="Enter"){
+                seed.blur();
+            }
+        });
+        seed.addEventListener('blur',()=>{
+            mapMap.seed=seed.innerText.trim();
+        });
+        seeddiv.appendChild(seed);
+
         let plalis=document.createElement('p');
         plalis.innerText="游玩人员：";
-        infop1.appendChild(plalis);
+        contentDiv.appendChild(plalis);
         let pl0=document.createElement('p');
-        pl0.innerText='（请输入名字，用换行隔开，不需要输入人数了）';
+        pl0.innerText=mapMap.plastr||'（请输入名字，用换行隔开，不需要输入人数了）';
         pl0.setAttribute("contenteditable","true");
-        infop1.appendChild(pl0);
+        pl0.addEventListener('input',()=>{
+            mapMap.plastr=pl0.innerText;
+        });
+        contentDiv.appendChild(pl0);
+
+        let itemslis=document.createElement('p');
+        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间简称或位置编号 标记名 颜色 特性”，用空格隔开。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见。";
+        itemslis.style.color="#ccc";
+        itemslis.style.fontSize="0.9rem";
+        contentDiv.appendChild(itemslis);
+        let il0=document.createElement('p');
+        il0.innerText=mapMap.itmstr||'（请输入文本）';
+        il0.setAttribute("contenteditable","true");
+        il0.addEventListener('input',()=>{
+            mapMap.itmstr=il0.innerText;
+        });
+        itemslis.appendChild(il0);
+
+        console.log(modpacks);
+
+        modpacks.forEach((modpack)=>{
+            let packdiv=document.createElement('div');
+            packdiv.style.fontSize="0.9rem";
+            packdiv.style.borderBottom="1px solid #fff";
+            packdiv.style.paddingBottom="3px";
+            let label = document.createElement('label');
+            let checkbox = document.createElement('input');
+            checkbox.type = "checkbox";
+            checkbox.value = modpack.name;
+            checkbox.style.margin="5px";
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(`要加载模组 ${modpack.name} 吗？`));
+            contentDiv.appendChild(label);
+            checkbox.checked=mapMap.ModsConfig[modpack.name]||false;
+            let lisdiv=document.createElement('div');
+            let func=()=>{
+                modpack.list.forEach((mod)=>{
+                    mapMap.ModsConfig[mod.name]=mapMap.ModsConfig[mod.name]||{disabled:false};
+                    let moddiv=document.createElement('div');
+                    moddiv.style.fontSize="0.8rem";
+                    moddiv.style.color="#fff";
+                    let modcheckbox=document.createElement('input');
+                    modcheckbox.type="checkbox";
+                    modcheckbox.value=mod.name;
+                    modcheckbox.style.margin="5px";
+                    modcheckbox.checked=!mapMap.ModsConfig[mod.name].disabled;
+                    modcheckbox.addEventListener('change',()=>{
+                        mapMap.ModsConfig[mod.name].disabled=!modcheckbox.checked;
+                    });
+                    moddiv.appendChild(modcheckbox);
+                    moddiv.appendChild(document.createTextNode(mod.name));
+                    if(mod.config){
+                        mod.config(moddiv);
+                    }
+                    lisdiv.appendChild(moddiv);
+                });
+            }
+            if(checkbox.checked){
+                func();
+            }
+            checkbox.addEventListener('change',()=>{
+                mapMap.ModsConfig[modpack.name]=checkbox.checked;
+                if(checkbox.checked){
+                    func();
+                }
+                else{
+                    lisdiv.innerHTML="";
+                }
+            });
+            packdiv.appendChild(label);
+            packdiv.appendChild(lisdiv);
+            contentDiv.appendChild(packdiv);
+        });
+
+
         let button0=document.createElement('button');
         button0.textContent="开始游戏";
-        button0.addEventListener('click',()=>{
-            let lines = pl0.innerText.split(/\r?\n/);
+        button0.style.marginTop="3px";
+        button0.addEventListener('click',async ()=>{
+            button0.style.display="none";
+
+            let lasConfig={
+                seed:mapMap.seed,
+                plastr:mapMap.plastr,
+                itmstr:mapMap.itmstr,
+                ModsConfig:mapMap.ModsConfig,
+            };
+
+            localStorage.setItem("lastConfig",JSON.stringify(lasConfig));
+
+            if(!mapMap.seed){
+                alert("种子不能为空。");
+                button0.style.display="";
+                return;
+            }
+            if(!mapMap.plastr){
+                alert("人员不能为空。");
+                button0.style.display="";
+                return;
+            }
+            setseed(mapMap.seed);
+
+            const response = await fetch('map.json');
+
+            if (!response.ok) {
+                throw new Error(`加载地图失败: ${response.status}`);
+            }
+
+            initMods();
+
+            let mapData = await response.json();
+
+            Object.assign(mapMap,mapData);
+
+            initLocs();
+
+            mapMap.items=[];
+
+            let lines = mapMap.plastr.trim().split(/\r?\n/);
+            Reflect.deleteProperty(mapMap,"plastr");
+            let items = mapMap.itmstr.trim().split(/\r?\n/);
+            Reflect.deleteProperty(mapMap,"itmstr");
+
+            items.forEach((itm)=>{
+                addItems([parseItem(itm)]);
+            });
+
+            addItems(structuredClone(mapData.itemsDefault));
+
             console.log(lines);
             let Players0=[];
             let id=0;
@@ -384,21 +581,51 @@ function mainMain() {
                     Players0[i].character="黑影";
                 }
             }
-            initMapData(Players0);
+
+            mapMap.Players=Players0;
+
+            initMapData();
+
+            overlay.remove();
+        });
+        contentDiv.appendChild(button0);
+
+        popup.appendChild(contentDiv);
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    }
+
+    async function title(){
+        await initDB();
+        mapMap.ModsConfig={};
+        await loadMods();
+        setseed("forever");
+
+        const img = document.createElement('img');
+        img.src = 'title.png';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        document.getElementById('layersContainer').appendChild(img);
+        let infop1=document.getElementById('infop1');
+        let button0=document.createElement('button');
+        button0.textContent="开始游戏";
+        button0.addEventListener('click',()=>{
+            gameinit();
         });
         infop1.appendChild(button0);
-        let button1=document.createElement('button');
-        button1.textContent="设置模组";
-        button1.addEventListener('click',()=>{
-            showMods();
-        });
-        infop1.appendChild(button1);
-        let button2=document.createElement('button');
-        button2.textContent="随机种子";
-        button2.addEventListener('click',()=>{
-            setseed();
-        });
-        infop1.appendChild(button2);
+        // let button1=document.createElement('button');
+        // button1.textContent="设置模组";
+        // button1.addEventListener('click',()=>{
+        //     showMods();
+        // });
+        // infop1.appendChild(button1);
+        // let button2=document.createElement('button');
+        // button2.textContent="随机种子";
+        // button2.addEventListener('click',()=>{
+        //     setseed();
+        // });
+        // infop1.appendChild(button2);
         // let rpbutton=document.createElement('button');
         // rpbutton.textContent="保存复盘";
         // rpbutton.addEventListener('click',async ()=>{
@@ -455,27 +682,7 @@ function mainMain() {
 
     async function initMapData(Players0) {
         try {
-            const response = await fetch('map.json');
-
-            if (!response.ok) {
-                throw new Error(`加载地图失败: ${response.status}`);
-            }
-
-            let mapData = await response.json();
-
-            Object.assign(mapMap,mapData);
-
-            initLocs();
-
-            mapMap.Players=Players0;
-
-            mapMap.items=[];
-
-            initMods();
-
             initPlayers();
-
-            addItems(structuredClone(mapData.itemsDefault));
 
             await initIcon();
 
@@ -712,7 +919,9 @@ function mainMain() {
         mapMap.items.forEach((item) => {
             if(item.id>maxid)maxid=item.id;
         });
+        console.log(itemsReady);
         itemsReady.forEach((item,i) => {
+            if(!item)return;
             item.id=maxid+1+i;
             if(item.Rom){
                 item.ty="Rom";
@@ -738,7 +947,7 @@ function mainMain() {
             catchItemAppendFunctions([item]);
             mapMap.items.push(item);
         });
-        
+        console.log(mapMap.items);
     }
 
     function getLoc(lor){
@@ -1003,6 +1212,57 @@ function mainMain() {
         }
     }
 
+    function addItemsAdvanced(){
+        const existing = document.getElementById('broadcastPopupOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'broadcastPopupOverlay';
+        overlay.className = 'popup-overlay';
+
+        const popup = document.createElement('div');
+        popup.className = 'popup-container';
+
+        const header = document.createElement('div');
+        header.className = 'popup-header';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'broadcasts';
+
+        let itemslis=document.createElement('p');
+        itemslis.innerText="在这里添加标记，格式为“房间简称或位置编号 标记名 颜色 特性”，用空格隔开。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见。";
+        itemslis.style.color="#ccc";
+        itemslis.style.fontSize="0.9rem";
+        contentDiv.appendChild(itemslis);
+        let il0=document.createElement('p');
+        il0.innerText=mapMap.itmstr||'（请输入文本）';
+        il0.setAttribute("contenteditable","true");
+        il0.addEventListener('input',()=>{
+            mapMap.itmstr=il0.innerText;
+        });
+        itemslis.appendChild(il0);
+
+        let button0=document.createElement('button');
+        button0.textContent="开始游戏";
+        button0.style.marginTop="3px";
+        button0.addEventListener('click',()=>{
+            let items = mapMap.itmstr.trim().split(/\r?\n/);
+            Reflect.deleteProperty(mapMap,"itmstr");
+
+            items.forEach((itm)=>{
+                addItems([parseItem(itm)]);
+            });
+            overlay.remove();
+            jumpAccordSTATUS(); 
+        });
+        contentDiv.appendChild(button0);
+
+        popup.appendChild(contentDiv);
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    }
+
     function switchNormalMode(){
         STATUS.ty='normal';
         STATUS.val=null;
@@ -1043,6 +1303,10 @@ function mainMain() {
         });
 
         buttonDiv.appendChild(document.createElement('br'));
+
+        getButton('#fff','批量加标记',()=>{
+            addItemsAdvanced();
+        });
 
         getButton('#fff','直接修改地图信息',()=>{
             showEditor(mapMap);
@@ -1467,6 +1731,13 @@ function mainMain() {
                 val:player.id,
                 color:color0
             }]);
+            jumpAccordSTATUS();
+        });
+
+        buttonDiv.appendChild(document.createElement('br'));
+
+        getButton(tinycolor.mix(player.color,'#fff',50),'直接修改角色信息',()=>{
+            showEditor(player);
             jumpAccordSTATUS();
         });
 
@@ -2592,6 +2863,8 @@ function mainMain() {
                 let newMapData = JSON.parse(textarea.value);
                 
                 // 2. 覆盖原有 mapMap 数据
+                Object.keys(obj0).forEach(key => delete obj0[key]); // 先清空原对象
+
                 Object.assign(obj0, newMapData);
                 
                 // 3. 重要：因为 JSON 序列化会丢失函数（比如 items 里的 lamda, info），需要重新绑定
@@ -2647,7 +2920,9 @@ function mainMain() {
     }
 
     function loadMap(map0,broadcastss){
+        Object.keys(mapMap).forEach(key => delete mapMap[key]);
         Object.assign(mapMap, JSON.parse(map0));
+        initMods();
         let broadcasts = document.getElementById('bd1');
         broadcasts.innerHTML=broadcastss;
         broadcasts.querySelectorAll('.broadcast').forEach((div)=>{
@@ -2681,7 +2956,26 @@ function mainMain() {
         switchNormalMode();
     }
 
-    function recoverGame(){
+    async function recoverGame(){
+
+        let saveslis = await new Promise((resolve)=>{
+            let trans=DB.transaction(["saves"],"readonly");
+            let store=trans.objectStore("saves");
+            let req=store.openCursor();
+            let lis=[];
+            req.onsuccess=function(event){
+                let cursor=event.target.result;
+                if(cursor){
+                    let data=cursor.value;
+                    lis.push({id:cursor.key,val:data.val});
+                    cursor.continue();
+                }
+                else{
+                    resolve(lis);
+                }
+            }
+        });
+
         const existing = document.getElementById('broadcastPopupOverlay');
         if (existing) existing.remove();
 
@@ -2709,16 +3003,16 @@ function mainMain() {
 
         let datalistdiv=document.createElement('div');
         datalistdiv.setAttribute('class','modlist');
-        Object.keys(localStorage).forEach((data)=>{
+        saveslis.forEach((data)=>{
             let ddiv=document.createElement('div');
-            let alldata=JSON.parse(localStorage.getItem(data));
+            let alldata=JSON.parse(data.val);
             console.log(data);
-            ddiv.innerText=data+"-"+alldata.timestamp;
+            ddiv.innerText=data.id+"-"+alldata.timestamp;
             ddiv.style.color="#fff";
             ddiv.appendChild(getButton("#fff","加载",()=>{
                 let saves=document.querySelector('.saves');
                 saves.innerHTML="";
-                alldata.lis.forEach((li)=>{
+                alldata.lis.forEach((li,ind)=>{
                     const parser = new DOMParser();
                     let button=parser.parseFromString(li.html, 'text/html').body.firstChild;
                     button.mapMap=li.map;
@@ -2727,12 +3021,23 @@ function mainMain() {
                     button.addEventListener('click', () => {
                         loadMap(button.mapMap,button.broadcasts);
                     });
+                    if(ind==alldata.lis.length-1){
+                        loadMap(button.mapMap,button.broadcasts);
+                        let rsddiv=document.querySelector('.randomseed');
+                        rsddiv.innerHTML=`随机数种子：${mapMap.seed}`;
+                    }
                 });
                 overlay.remove();
             },false));
             ddiv.appendChild(getButton("#fff","删除",()=>{
-                localStorage.removeItem(data);
-                recoverGame();
+                let trans=DB.transaction(["saves"],"readwrite");
+                let store=trans.objectStore("saves");
+                let req=store.delete(data.id);  
+                req.onsuccess=()=>{
+                    console.log("删除成功");
+                    ddiv.remove();
+                    recoverGame();
+                }
             },false));
             datalistdiv.appendChild(ddiv);
         });
@@ -2772,8 +3077,18 @@ function mainMain() {
         });
         let name=mapMap.seed;
         console.log(lblist);
-        localStorage.setItem(name,JSON.stringify({timestamp:moment().format('HH:mm:ss(YYYY/MM/DD)'),lis:lblist}));
+        //localStorage.setItem(name,JSON.stringify({timestamp:moment().format('HH:mm:ss(YYYY/MM/DD)'),lis:lblist}));
         //console.log(localStorage.getItem(name));
+        let text=JSON.stringify({timestamp:moment().format('HH:mm:ss(YYYY/MM/DD)'),lis:lblist});
+        let trans=DB.transaction(["saves"],"readwrite");
+        let store=trans.objectStore("saves");
+        let req=store.put({id:name,val:text});
+        req.onsuccess=()=>{
+            console.log("存档成功");
+        }       
+        req.onerror=()=>{
+            console.log("存档失败");
+        }
     }
 
     function setSteps(chara,steps){
@@ -2861,130 +3176,214 @@ function mainMain() {
 
     let modlist=[];
     let modlistban=[];
+    let modpacks=[];
 
     mapMap.broadcasts={};
 
     async function loadMods(){
         mapMap.ModsData={};
         let mods0=await import("./mods.js");
-        let mods=mods0.mods(compack);
-        mods.forEach((mod)=>{
-            console.log(mod.name);
-            Object.assign(mapMap.broadcasts,mod.broadcasts);
-            if(!mod.notdefault)modlist=modlist.concat(mod.list);
-            else modlistban=modlistban.concat(mod.list);
-        });
+        modpacks=modpacks.concat(mods0.mods(compack));
     }
 
-    function showMods(){
-        console.log(modlist);
-        const existing = document.getElementById('broadcastPopupOverlay');
-        if (existing) existing.remove();
+    // function showMods(){
+    //     console.log(modlist);
+    //     const existing = document.getElementById('broadcastPopupOverlay');
+    //     if (existing) existing.remove();
 
-        const overlay = document.createElement('div');
-        overlay.id = 'broadcastPopupOverlay';
-        overlay.className = 'popup-overlay';
+    //     const overlay = document.createElement('div');
+    //     overlay.id = 'broadcastPopupOverlay';
+    //     overlay.className = 'popup-overlay';
 
-        const popup = document.createElement('div');
-        popup.className = 'popup-container';
+    //     const popup = document.createElement('div');
+    //     popup.className = 'popup-container';
 
-        const header = document.createElement('div');
-        header.className = 'popup-header';
+    //     const header = document.createElement('div');
+    //     header.className = 'popup-header';
 
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'broadcasts';
-        contentDiv.innerHTML = bd1.innerHTML;
+    //     const contentDiv = document.createElement('div');
+    //     contentDiv.className = 'broadcasts';
+    //     contentDiv.innerHTML = bd1.innerHTML;
 
-        popup.appendChild(header);
-        popup.appendChild(contentDiv);
+    //     popup.appendChild(header);
+    //     popup.appendChild(contentDiv);
 
-        let text1=document.createElement('text');
-        text1.innerText="以下模组会被加载：";
-        text1.style.color="#fff";
-        contentDiv.appendChild(text1);
+    //     let text1=document.createElement('text');
+    //     text1.innerText="以下模组会被加载：";
+    //     text1.style.color="#fff";
+    //     contentDiv.appendChild(text1);
 
-        let modlistdiv=document.createElement('div');
-        modlistdiv.setAttribute('class','modlist');
-        modlist.forEach((mod)=>{
-            let mbut=document.createElement('button');
-            mbut.innerText=mod.name;
-            mbut.addEventListener('click',()=>{
-                let ind=modlist.indexOf(mod);
-                modlistban.push(mod);
-                modlist.splice(ind,1);
-                showMods();
-            });
-            modlistdiv.appendChild(mbut);
-        });
+    //     let modlistdiv=document.createElement('div');
+    //     modlistdiv.setAttribute('class','modlist');
+    //     modlist.forEach((mod)=>{
+    //         let mbut=document.createElement('button');
+    //         mbut.innerText=mod.name;
+    //         mbut.addEventListener('click',()=>{
+    //             let ind=modlist.indexOf(mod);
+    //             modlistban.push(mod);
+    //             modlist.splice(ind,1);
+    //             showMods();
+    //         });
+    //         modlistdiv.appendChild(mbut);
+    //     });
 
-        contentDiv.appendChild(modlistdiv);
+    //     contentDiv.appendChild(modlistdiv);
 
-        let text2=document.createElement('text');
-        text2.innerText="以下模组被禁用了：";
-        text2.style.color="#fff";
-        contentDiv.appendChild(text2);
+    //     let text2=document.createElement('text');
+    //     text2.innerText="以下模组被禁用了：";
+    //     text2.style.color="#fff";
+    //     contentDiv.appendChild(text2);
 
-        let modlistbandiv=document.createElement('div');
-        modlistbandiv.setAttribute('class','modlistban');
-        modlistban.forEach((mod)=>{
-            let mbut=document.createElement('button');
-            mbut.innerText=mod.name;
-            mbut.addEventListener('click',()=>{
-                let ind=modlistban.indexOf(mod);
-                modlist.push(mod);
-                modlistban.splice(ind,1);
-                showMods();
-            });
-            modlistbandiv.appendChild(mbut);
-        });
+    //     let modlistbandiv=document.createElement('div');
+    //     modlistbandiv.setAttribute('class','modlistban');
+    //     modlistban.forEach((mod)=>{
+    //         let mbut=document.createElement('button');
+    //         mbut.innerText=mod.name;
+    //         mbut.addEventListener('click',()=>{
+    //             let ind=modlistban.indexOf(mod);
+    //             modlist.push(mod);
+    //             modlistban.splice(ind,1);
+    //             showMods();
+    //         });
+    //         modlistbandiv.appendChild(mbut);
+    //     });
 
-        contentDiv.appendChild(modlistbandiv);
+    //     contentDiv.appendChild(modlistbandiv);
 
-        let buttonDiv = document.createElement('div');
-        buttonDiv.className = 'popup-buttons';
+    //     let buttonDiv = document.createElement('div');
+    //     buttonDiv.className = 'popup-buttons';
 
-        const closeButton = document.createElement('button');
-        closeButton.innerText = '完成';
-        closeButton.setAttribute("id","closeButton");
-        closeButton.addEventListener('click', () => {
-            overlay.remove();
-        });
-        buttonDiv.appendChild(closeButton);
+    //     const closeButton = document.createElement('button');
+    //     closeButton.innerText = '完成';
+    //     closeButton.setAttribute("id","closeButton");
+    //     closeButton.addEventListener('click', () => {
+    //         overlay.remove();
+    //     });
+    //     buttonDiv.appendChild(closeButton);
 
-        popup.appendChild(buttonDiv);
+    //     popup.appendChild(buttonDiv);
 
-        overlay.appendChild(popup);
-        document.body.appendChild(overlay);
+    //     overlay.appendChild(popup);
+    //     document.body.appendChild(overlay);
 
-        console.log(overlay);
+    //     console.log(overlay);
+    // }
+
+    function defaultConfig(dom,str,dest){
+        function gett(val,typ){
+            if(typ=="list"){
+                return val.split(" ");
+            }
+            if(!typ){
+                return parseInt(val);
+            }
+            return val;
+        }
+        function sett(val,typ){
+            if(typ=="list"){
+                return val.join(" ");
+            }
+            return val;
+        }
+        str=str.trim();
+        let dom0=document.createElement('div');
+        dom0.setAttribute("class","configdiv");
+        dom0.style.display="flex";
+        let str0="";
+        for(let char of str){
+            if(char=='['){
+                let sdiv=document.createElement('div');
+                sdiv.setAttribute("class","configsubdiv");
+                sdiv.innerHTML=str0;
+                str0="";
+                dom0.appendChild(sdiv);
+            }
+            else if(char==']'){
+                let sdiv=document.createElement('div');
+                sdiv.setAttribute("class","configvardiv");
+                sdiv.setAttribute("contenteditable","true");
+                sdiv.addEventListener("keydown",(e)=>{
+                    if(e.key=="Enter"){
+                        sdiv.blur();
+                    }
+                });
+                let vatt=str0.split(":");
+                let name=vatt[0],val=dest[name]||vatt[1],typ=vatt[2];
+                sdiv.innerText=val;
+                dest[name]=gett(val,typ);
+                sdiv.addEventListener("blur",()=>{
+                    let valnew=gett(sdiv.innerText,typ);
+                    if(typeof valnew === "number"&&isNaN(valnew)){
+                        sdiv.innerText=val;
+                        return;
+                    }
+                    dest[name]=valnew;
+                    sdiv.innerText=sett(valnew,typ);
+                })
+                str0="";
+                dom0.appendChild(sdiv);
+            }
+            else {
+                str0+=char;
+            }
+        }
+        if(str0){
+            let sdiv=document.createElement('div');
+            sdiv.setAttribute("class","configsubdiv");
+            sdiv.innerHTML=str0;
+            str0="";
+            dom0.appendChild(sdiv);
+        }
+        dom.appendChild(dom0);
     }
 
     function initMods(){
+
+        Mods={};
+
+        Mods.item={info:[],click:[],result:[]};
+
+        Mods.mechan={info:[],click:[],result:[]};
+
+        initevents=[];
+
+        roundendevents=[];
+
+        stependevents=[];
+
+        modlist=[];
+
+        modpacks.forEach((mod)=>{
+            if(!mapMap.ModsConfig[mod.name])return;
+            Object.assign(mapMap.broadcasts,mod.broadcasts);
+            modlist=modlist.concat(mod.list);
+        });
         modlist.forEach((ele)=>{
             Object.keys(ele).forEach((key)=>{
                 let key2=key.split("_")[0];
                 //console.log(key,key2);
+                if(!mapMap.ModsConfig[ele.name]||mapMap.ModsConfig[ele.name].disabled)return;
                 if(key2=="mechan"||key2=="item"){
                     let cond=ele[key].cond;
                     Object.keys(ele[key]).forEach((key1)=>{
                         if(key1!="cond"){
-                            console.log(key1);
+                            //console.log(key1);
                             let key1li=key1.split("_");
-                            console.log(cond,key,key1li);
+                            //console.log(cond,key,key1li);
                             Mods[key2][key1li[0]].push({cond:cond,lamda:ele[key][key1],preventDefault:("additional"!=key1li[1])});
                         }
                     });
                 }
                 if(key2=="init"){
-                    console.log(ele[key]);
+                    //console.log(ele[key]);
                     initevents.push(ele[key]);
                 }
                 if(key2=="roundend"){
-                    console.log(ele[key]);
+                    //console.log(ele[key]);
                     roundendevents.push(ele[key]);
                 }
                 if(key2=="stepend"){
-                    console.log(ele[key]);
+                    //console.log(ele[key]);
                     stependevents.push(ele[key]);
                 }
             });
@@ -3043,6 +3442,7 @@ function mainMain() {
             }
         }});
         console.log(Mods); 
+        console.log(roundendevents);
     }
 
     function catchItemAppendFunctions(itemslist){
@@ -3092,7 +3492,7 @@ function mainMain() {
         mapMap.seed=str;
         const rng = new Math.seedrandom(mapMap.seed,{state: true});
         mapMap.rngstate=rng.state();
-        console.log(rng.state());
+        //console.log(rng.state());
     }
 
     Object.assign(compack, {
@@ -3107,7 +3507,7 @@ function mainMain() {
         nextRound, renderAllLayers, jumpAccordSTATUS, pickItem, dropItem, deleteItem,
         moveItem, getItemActual, drawItems, initRule, getbc, parseTextWithColor, getbcdiv, broadcast,
         showBroadcasts, showEditor, saveMap, loadMap, setSteps,
-        saveReplay, showMods, loadMods, initMods, catchItemAppendFunctions, RANDOM, setseed,
+        saveReplay, loadMods, defaultConfig, initMods, catchItemAppendFunctions, RANDOM, setseed,
     });
 
     title();
