@@ -529,7 +529,7 @@ function mainMain() {
             };
 
             localStorage.setItem("lastConfig",JSON.stringify(lasConfig));
-            
+
             setseed(mapMap.seed);
 
             const response = await fetch('map.json');
@@ -550,7 +550,7 @@ function mainMain() {
 
             let lines = mapMap.plastr.trim().split(/\r?\n/);
             Reflect.deleteProperty(mapMap,"plastr");
-            let items = mapMap.itmstr.trim().split(/\r?\n/);
+            let items = mapMap.itmstr?mapMap.itmstr.trim().split(/\r?\n/):[];
             Reflect.deleteProperty(mapMap,"itmstr");
 
             items.forEach((itm)=>{
