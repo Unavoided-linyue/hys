@@ -184,6 +184,7 @@ svg {
     max-height: 80%;
     min-width: 40%;
     border: 2px solid #fff;
+    color: #ffffff;
     overflow: auto;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
@@ -212,6 +213,41 @@ svg {
     border: none;
     cursor: pointer;
     padding: 0 8px;
+}
+
+.configvardiv{
+    color: #0f0;
+}
+
+.configsubdiv{
+    color: #ccc;
+    white-space: pre;
+}
+
+::-webkit-scrollbar {
+  width: 9px;          /* 垂直滚动条宽度 */
+  height: 9px;         /* 水平滚动条高度 */
+}
+
+/* 滚动条轨道（背景） */
+::-webkit-scrollbar-track {
+  background: #000000; /* 轨道背景色 */
+}
+
+/* 滚动条滑块（可拖拽部分） */
+::-webkit-scrollbar-thumb {
+  background: #dddddd; /* 滑块颜色 */
+  border-radius: 10px; /* 与轨道圆角保持一致 */
+  border: 3px solid transparent;
+  background-clip: padding-box; 
+}
+
+/* 滑块悬停效果 */
+::-webkit-scrollbar-thumb:hover {
+  background: #00ccff;
+  border-radius: 10px; /* 与轨道圆角保持一致 */
+  border: 3px solid transparent;
+  background-clip: padding-box; 
 }
 
 /* 完全避免圆角，任何地方都是直角 */
