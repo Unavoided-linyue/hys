@@ -534,19 +534,23 @@ let mods = (main)=>{
                         }
                     }
                 },
-                {
-                    name:"开锁器生成",
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                        let str="在 R[round:-1] 结束时共生成 [keycount:3] 个开锁器，要求距离编号为 [exit:7] 的房间超过 [stp:3] 步。"
+                        main.defaultConfig(dom,str,src());
+                    },
                     roundend:{
                         priority:100000000,
                         fun:()=>{
-                            if(mapMap.Round!=-1)return;
+                            if(mapMap.Round!=src().round)return;
                             let lis=[];
-                            for(let iii=1;iii<=3;iii++){
-                                let Loc7=mapMap.Locs.find(Loc=>Loc.rom==7).id;
+                            for(let iii=1;iii<=src().keycount;iii++){
+                                let Loc7=mapMap.Locs.find(Loc=>Loc.rom==src().exit).id;
                                 let dis=main.caculateDis(Loc7);
                                 let ge3=[];
                                 mapMap.Locs.forEach((ele)=>{
-                                    if(dis.get(ele.id)===null||dis.get(ele.id)>3)ge3.push(ele.rom);
+                                    if(dis.get(ele.id)===null||dis.get(ele.id)>src().stp)ge3.push(ele.rom);
                                 });
                                 let rom0=ge3.length?ge3[Math.floor(main.RANDOM()*ge3.length)]:1;
                                 lis.push({"Rom":rom0,"color":4,"name":"开锁","static":true});
@@ -605,7 +609,7 @@ let mods = (main)=>{
                             }
                         }
                     }
-                },
+                }})("开锁器"),
                 {
                     name:"死歌",
                     init:{
@@ -637,8 +641,10 @@ let mods = (main)=>{
                         }
                     }
                 },
-                {
-                    name:"身份与阶段",
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                    },
                     init:{
                         priority:100,
                         fun:()=>{
@@ -787,7 +793,7 @@ let mods = (main)=>{
                         }
                     },
                     roundend:{
-                        priority:100000000000,
+                        priority:1000000,
                         fun:()=>{
                             mapMap.ModsData.stagesep.forEach((sep,index)=>{
                                 if(mapMap.Round>=sep)updateStage(index+1);
@@ -808,9 +814,13 @@ let mods = (main)=>{
                             }
                         }
                     }
-                },
-                {
-                    name:"系统重启",
+                }})("身份与阶段"),
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                        let str="系统重启时，所有人随机得知 [a:0]+[b:2]X 个位置的房间。（X为回合数）"
+                        main.defaultConfig(dom,str,src());
+                    },
                     init:{
                         priority:1,
                         fun:()=>{
@@ -871,7 +881,7 @@ let mods = (main)=>{
                                     if(Loc.visPlayer.length)Loc.visPlayer=[];
                                 });
                                 mapMap.Players.forEach((player)=>{
-                                    let lim=Math.min(mapMap.Round*2,mapMap.Locs.length);
+                                    let lim=Math.min(src().a+mapMap.Round*src().b,mapMap.Locs.length);
                                     let arr=[];if(player.dead&&player.character!="黑影")return;
                                     for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
                                     arr.sort(()=>main.RANDOM()-0.5);
@@ -882,9 +892,12 @@ let mods = (main)=>{
                             }
                         }
                     }
-                },
-                {
-                    name:"回合广播",
+                }})("系统重启"),
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                        //main.defaultConfig(dom,`要使用 DATA 设定吗？(Y/N) [usedata:Y:string]`,src());
+                    },
                     roundend:{
                         priority:10,
                         fun:()=>{
@@ -898,79 +911,79 @@ let mods = (main)=>{
                             }
                         }
                     }
-                }
+                }})("回合广播"),
             ]
         },
+        // {
+        //     name:"否极泰来",
+        //     notdefault:true,
+        //     list:[
+        //         {
+        //             name:"否极泰来",
+        //             init:{
+        //                 priority:1000,
+        //                 fun:()=>{
+        //                     mapMap.Locs.forEach((Loc)=>{
+        //                         Loc.vertices.forEach((v0)=>{
+        //                             if(Loc.floor<=3)Loc.floor+=3;
+        //                             else Loc.floor-=3;
+        //                         })
+        //                     });
+        //                     mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(22,30)),1);
+        //                     mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(15,24)),1);
+        //                     mapMap.Doors.push({"Loc1":8,"Loc2":48});
+        //                     mapMap.ModsData.doorstorecover=[
+        //                         {"Loc1":8,"Loc2":9,"type":"stair"},
+        //                         {"Loc1":31,"Loc2":48,"type":"stair"}
+        //                     ];
+        //                     main.initLocs();
+        //                 }
+        //             },
+        //         }
+        //     ]
+        // },
+        // {
+        //     name:"DATA",
+        //     notdefault:true,
+        //     list:[
+        //         {
+        //             name:"DATA",
+        //             roundend:{
+        //                 priority:10,
+        //                 fun:()=>{
+        //                     if(mapMap.Round>=-1){
+        //                         let lis=[];
+        //                         if(mapMap.Round%2==0){
+        //                             mapMap.Players.forEach((ele)=>{
+        //                                 if(ele.dead)return;
+        //                                 if(ele.character!="黑影"){
+        //                                     lis.push(ele.Loc);
+        //                                 }
+        //                             });
+        //                         }
+        //                         else if(mapMap.Round%2==1){
+        //                             mapMap.Players.forEach((ele)=>{
+        //                                 if(ele.dead)return;
+        //                                 if(ele.character=="黑影"){
+        //                                     lis.push(ele.Loc);
+        //                                 }
+        //                             });
+        //                         }
+        //                         lis.sort((a,b)=>a-b);
+        //                         let bc=main.getbc("round");
+        //                         bc=bc.replace("[end]",mapMap.Round);
+        //                         bc=bc.replace("[begin]",mapMap.Round+1);
+        //                         bc=bc.replace("[char]",`位于${lis.join(" ")}的人`);
+        //                         bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
+        //                         main.broadcast(bc);
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     ]
+        // },
         {
-            name:"否极泰来",
-            notdefault:true,
-            list:[
-                {
-                    name:"否极泰来",
-                    init:{
-                        priority:1000,
-                        fun:()=>{
-                            mapMap.Locs.forEach((Loc)=>{
-                                Loc.vertices.forEach((v0)=>{
-                                    if(Loc.floor<=3)Loc.floor+=3;
-                                    else Loc.floor-=3;
-                                })
-                            });
-                            mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(22,30)),1);
-                            mapMap.Doors.splice(mapMap.Doors.indexOf(main.getNotPortal(15,24)),1);
-                            mapMap.Doors.push({"Loc1":8,"Loc2":48});
-                            mapMap.ModsData.doorstorecover=[
-                                {"Loc1":8,"Loc2":9,"type":"stair"},
-                                {"Loc1":31,"Loc2":48,"type":"stair"}
-                            ];
-                            main.initLocs();
-                        }
-                    },
-                }
-            ]
-        },
-        {
-            name:"DATA",
-            notdefault:true,
-            list:[
-                {
-                    name:"DATA",
-                    roundend:{
-                        priority:10,
-                        fun:()=>{
-                            if(mapMap.Round>=-1){
-                                let lis=[];
-                                if(mapMap.Round%2==0){
-                                    mapMap.Players.forEach((ele)=>{
-                                        if(ele.dead)return;
-                                        if(ele.character!="黑影"){
-                                            lis.push(ele.Loc);
-                                        }
-                                    });
-                                }
-                                else if(mapMap.Round%2==1){
-                                    mapMap.Players.forEach((ele)=>{
-                                        if(ele.dead)return;
-                                        if(ele.character=="黑影"){
-                                            lis.push(ele.Loc);
-                                        }
-                                    });
-                                }
-                                lis.sort((a,b)=>a-b);
-                                let bc=main.getbc("round");
-                                bc=bc.replace("[end]",mapMap.Round);
-                                bc=bc.replace("[begin]",mapMap.Round+1);
-                                bc=bc.replace("[char]",`位于${lis.join(" ")}的人`);
-                                bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
-                                main.broadcast(bc);
-                            }
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            name:"毒气",
+            name:"毒气鲨极速版",
             notdefault:true,
             list:[
                 {
