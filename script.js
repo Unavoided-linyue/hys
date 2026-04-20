@@ -350,11 +350,16 @@ function mainMain() {
         let parts=str.trim().split(' ');
         console.log(parts);
         if(parts.length<3)return null;
-        let lor=getLocorRom(parts[0]);
-        if(!lor)return null;
         let item={};
-        if(lor.ty=="Loc")item.Loc=lor.val;
-        if(lor.ty=="Rom")item.Rom=lor.val;
+        if(parts[0]=="R"){
+            item.Rom=mapMap.Roms[randomInt(0,mapMap.Roms.length-1)].id;
+        }
+        else{
+            let lor=getLocorRom(parts[0]);
+            if(!lor)return null;
+            if(lor.ty=="Loc")item.Rom=mapMap.Roms.find((ele)=>ele.Loc==lor.val).id;
+            if(lor.ty=="Rom")item.Rom=lor.val;
+        }
         item.color=parseColor(parts[2]);
         item.name=parts[1];
         let strc=parts[3]||"";
@@ -363,6 +368,11 @@ function mainMain() {
         if(strc.includes("K"))item.keepInventory=true;
         if(strc.includes("I"))item.invisible=true;
         if(strc.includes("V"))item.alwayVisibie=true;
+        if(strc.includes("L")){
+            let loc0=mapMap.Locs.find((ele)=>ele.rom==item.Rom).id;
+            item.Loc=loc0;
+            Reflect.deleteProperty(item,"Rom");
+        }
         console.log(item);
         return item;
     }
@@ -435,7 +445,7 @@ function mainMain() {
         contentDiv.appendChild(pl0);
 
         let itemslis=document.createElement('p');
-        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间简称或位置编号 标记名 颜色 特性”，用空格隔开。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见。";
+        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间 标记名 颜色 特性”，用空格隔开。房间可以输入编号或简称，若输入字母R则随机生成。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见；L，位置固定，不跟随房间移动。";
         itemslis.style.color="#ccc";
         itemslis.style.fontSize="0.9rem";
         contentDiv.appendChild(itemslis);
