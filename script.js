@@ -357,7 +357,7 @@ function mainMain() {
         else{
             let lor=getLocorRom(parts[0]);
             if(!lor)return null;
-            if(lor.ty=="Loc")item.Rom=mapMap.Roms.find((ele)=>ele.Loc==lor.val).id;
+            if(lor.ty=="Loc")item.Rom=mapMap.Locs.find((ele)=>ele.id==lor.val).rom;
             if(lor.ty=="Rom")item.Rom=lor.val;
         }
         item.color=parseColor(parts[2]);
