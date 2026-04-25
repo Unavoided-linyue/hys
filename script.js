@@ -2253,7 +2253,7 @@ function mainMain() {
                 drawRomName(Loc0);
 
                 drawVisDots(Loc0);
-                itemLocs.set(Loc0.id,"visited");
+                itemLocs.set(Loc0.id,"supervision");
             });
             drawNames();
 
@@ -2380,7 +2380,8 @@ function mainMain() {
                 case 'Loc':{
                     const locId = item.val;
                     if(!Locs.has(locId))return;
-                    if(!item.alwayVisibie&&Locs.get(locId)!="visited")return;
+                    if(!item.alwayVisibie&&Locs.get(locId)!="visited"&&Locs.get(locId)!="supervision")return;
+                    if(item.invisible&&Locs.get(locId)!="supervision"&&!item.alwayVisibie)return;
                     let lis0=`Loc ${locId}`;
                     if(!itemsToDraw.has(lis0)) itemsToDraw.set(lis0, []);
                     itemsToDraw.get(lis0).push(item);
@@ -2389,7 +2390,8 @@ function mainMain() {
                 case 'Rom':{
                     const locId = mapMap.Locs.find((ele)=>ele.rom==item.val).id;
                     if(!Locs.has(locId))return;
-                    if(!item.alwayVisibie&&Locs.get(locId)!="visited")return;
+                    if(!item.alwayVisibie&&Locs.get(locId)!="visited"&&Locs.get(locId)!="supervision")return;
+                    if(item.invisible&&Locs.get(locId)!="supervision"&&!item.alwayVisibie)return;
                     let lis0=`Loc ${locId}`;
                     if(!itemsToDraw.has(lis0)) itemsToDraw.set(lis0, []);
                     itemsToDraw.get(lis0).push(item);
