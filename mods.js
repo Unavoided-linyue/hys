@@ -139,6 +139,14 @@ let mods = (main)=>{
                             main.addItems([{"Rom":29,"color":9,"name":"电门","type":"机关"},{"Rom":1,"color":2,"name":"有电"},{"Rom":24,"color":7,"name":"靴子"}]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="有电"||item.name=="没电"),
+                        src:"n2rom1.svg"
+                    },
+                    icon_2:{
+                        cond:item=>(item.name=="电门"),
+                        src:"n2rom29.svg"
+                    },
                     mechan:{
                         cond:(item)=>item.name=='电门',
                         result:(item)=>{
@@ -210,6 +218,10 @@ let mods = (main)=>{
                             main.addItems([{"Rom":25,"color":3,"name":"没毒"},{"Rom":27,"color":6,"name":"霰弹"},{"Rom":42,"color":7,"name":"口罩"}]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="有毒"||item.name=="没毒"),
+                        src:"n2rom25.svg"
+                    },
                     item:{
                         cond:(item)=>item.name=='霰弹',
                         info_additional:(item)=>{
@@ -266,6 +278,10 @@ let mods = (main)=>{
                             main.addItems([{"Rom":35,"color":9,"name":"觉醒","type":"机关"}]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="觉醒"),
+                        src:"n2rom35.svg"
+                    },
                     mechan:{
                         cond:(item)=>item.name=='觉醒',
                         click_additional:(item)=>{
@@ -301,6 +317,10 @@ let mods = (main)=>{
                         fun:()=>{
                             main.addItems([{"Rom":33,"color":9,"name":"扑克","type":"机关"}]);
                         }
+                    },
+                    icon:{
+                        cond:item=>(item.name=="扑克"),
+                        src:"n2rom33.svg"
                     },
                     mechan:{
                         cond:(item)=>item.name=='扑克',
@@ -343,6 +363,10 @@ let mods = (main)=>{
                             main.addItems([{"Rom":3,"color":9,"name":"壁炉","type":"机关"}]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="壁炉"),
+                        src:"n2rom3.svg"
+                    },
                     mechan:{
                         cond:(item)=>item.name=='壁炉',
                         click_additional:(item)=>{
@@ -382,6 +406,10 @@ let mods = (main)=>{
                         fun:()=>{
                             main.addItems([{"Rom":19,"color":9,"name":"麦克","type":"机关"}]);
                         }
+                    },
+                    icon:{
+                        cond:item=>(item.name=="麦克"),
+                        src:"n2rom19.svg"
                     },
                     mechan:{
                         cond:(item)=>item.name=='麦克',
@@ -474,6 +502,10 @@ let mods = (main)=>{
                             main.addItems([{"Rom":18,"color":9,"name":"魔方","type":"机关"}]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=='魔方'),
+                        src:"n2rom18.svg"
+                    },
                     mechan:{
                         cond:(item)=>item.name=='魔方',
                         result:(item)=>{
@@ -500,25 +532,32 @@ let mods = (main)=>{
                             main.addItems([{"Rom":24,"color":8,"name":"黑暗"},{"Rom":4,"color":6,"name":"手电"},]);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="黑暗"),
+                        src:"n2rom24.svg"
+                    },
                     item:{
                         cond:(item)=>item.name=='黑暗'||item.name=='明亮',
                         info:(item)=>{
-                            if(item.name=="黑暗")return `再点一次变为明亮。`;
-                            else return `再点一次变为黑暗。`;
+                            let info=document.getElementById('info');
+                            if(item.name=="黑暗")info.innerHTML= `再点一次变为明亮。`;
+                            else info.innerHTML= `再点一次变为黑暗。`;
                         },
                         click:(item)=>{
                             if(item.name=="黑暗"){
                                 item.color=mapMap.COLOR_DEFAULT[2];
                                 item.name='明亮';
+                                main.jumpAccordSTATUS();
                             }
                             else if(item.name=="明亮"){
                                 item.color=mapMap.COLOR_DEFAULT[8];
                                 item.name='黑暗';
+                                main.jumpAccordSTATUS();
                             }
                         },
                         result:(item)=>{
                             if(item.name=="黑暗"){
-                                let Loc0=mapMap.Locs.find(Loc=>Loc.rom==item.val);
+                                let Loc0=mapMap.Locs.find(Loc=>Loc.id==main.getLoc(item));
                                 if(!Loc0)return;
                                 Loc0.visPlayer=[];
                                 let lis0=[];
@@ -531,8 +570,32 @@ let mods = (main)=>{
                                 let randomloc=lis0[Math.floor(main.RANDOM()*lis0.length)];
                                 main.swapRom(Loc0,randomloc);
                             }
-                        }
-                    }
+                        },
+                    },
+                    stepend:{
+                            priority:1,
+                            fun:()=>{
+                                let isDark=new Map();
+                                mapMap.items.forEach((item)=>{
+                                    if(item.name=="黑暗"){
+                                        if(item.ty!="Player")isDark[main.getLoc({ty:item.ty,val:item.val})]=true;
+                                    }
+                                })
+                                //console.log(isDark);
+                                mapMap.items.forEach((item)=>{
+                                    if(item.name=="黑暗")return;
+                                    if(item.ty!="Player"){
+                                        if(isDark[main.getLoc({ty:item.ty,val:item.val})]){
+                                            //console.log(item);
+                                            if(!Object.prototype.hasOwnProperty.call(item,"invisible"))item.invisible="黑暗";
+                                        }
+                                        else{
+                                            if(item.invisible=="黑暗")Reflect.deleteProperty(item,"invisible");
+                                        }
+                                    }
+                                })
+                            }
+                        },
                 },
                 ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
                     name:Name,
@@ -616,7 +679,12 @@ let mods = (main)=>{
                         priority:0,
                         fun:()=>{
                             main.addItems([{"Rom":36,"color":7,"name":"十字","static":true,"keepInventory":true}]);
+                            main.addItems([{"Rom":36,"color":1,"name":"死歌","alwaysInvisible":true}]);
                         }
+                    },
+                    icon:{
+                        cond:item=>(item.name=="死歌"),
+                        src:"n2rom36.svg"
                     },
                     item:{
                         cond:(item)=>item.name=='十字',
@@ -629,16 +697,36 @@ let mods = (main)=>{
                     }
                 },
                 {
-                    name:"其他道具（金币望远变装）",
+                    name:"其他道具和图标（金币望远变装大堂档案室连廊301）",
                     init:{
                         priority:0,
                         fun:()=>{
                             main.addItems([
                                 {"Rom":16,"color":2,"name":"金币"},
                                 {"Rom":17,"color":4,"name":"望远"},
-                                {"Rom":23,"color":7,"name":"变装"}
+                                {"Rom":23,"color":7,"name":"变装"},
+                                {"Rom":7,"color":8,"name":"大堂","alwaysInvisible":true},
+                                {"Rom":47,"color":8,"name":"档案室","alwaysInvisible":true},
+                                {"Rom":14,"color":8,"name":"301","alwaysInvisible":true},
+                                {"Rom":49,"color":8,"name":"连廊","alwaysInvisible":true}
                             ]);
                         }
+                    },
+                    icon_1:{
+                        cond:item=>(item.name=="大堂"),
+                        src:"n2rom7.svg"
+                    },
+                    icon_2:{
+                        cond:item=>(item.name=="档案室"),
+                        src:"n2rom47.svg"
+                    },
+                    icon_3:{
+                        cond:item=>(item.name=="301"),
+                        src:"n2rom14.svg"
+                    },
+                    icon_4:{
+                        cond:item=>(item.name=="连廊"),
+                        src:"n2rom49.svg"
                     }
                 },
                 ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
@@ -832,6 +920,10 @@ let mods = (main)=>{
                             mapMap.ModsData.itemstorecover=JSON.stringify(itemstorecover);
                         }
                     },
+                    icon:{
+                        cond:item=>(item.name=="重启"),
+                        src:"n2rom44.svg"
+                    },
                     mechan:{
                         cond:(item)=>item.name=='重启',
                         click:(item)=>{
@@ -912,6 +1004,110 @@ let mods = (main)=>{
                         }
                     }
                 }})("回合广播"),
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                    },
+                    init:{
+                        priority:1,
+                        fun:()=>{
+                            main.addItems([{"Rom":44,"color":'#ccc',"name":"打乱","type":"机关","static":true}]);
+                        }
+                    },
+                    mechan:{
+                        cond:(item)=>item.name=='打乱',
+                        click:(item)=>{
+                            if(STATUS.ty!="normal"&&(!item.used||item.used=="主持")){
+                                STATUS.val.stpData.push({"ty":"Mechan","val":item.name});
+                                main.killPlayer(STATUS.val);
+                                main.switchNormalMode();
+                            }
+                            else if(STATUS.ty=="normal"&&!item.used){
+                                item.used="主持";
+                            }
+                            else if(STATUS.ty=="normal"&&item.used){
+                                item.used=null;
+                            }
+                        },
+                        result:(item)=>{
+                            if(item.used){
+                                main.broadcast(main.getbc("reset"));
+                                mapMap.items.forEach(item=>{
+                                    if(main.RANDOM()<0.5){
+                                        if(item.ty=='Loc'){
+                                            item.ty='Rom';
+                                            item.val=mapMap.Locs.find(ele=>ele.id==item.val).rom;
+                                        }
+                                        else if(item.ty=='Rom'){
+                                            item.ty='Loc';
+                                            item.val=mapMap.Locs.find(ele=>ele.rom==item.val).id;
+                                        }
+                                    }
+                                })
+                                console.log(mapMap);
+                                let keploc=new Map();
+                                mapMap.Players.forEach(ele=>{
+                                    if(main.RANDOM()<0.5){
+                                        keploc.set(ele.id,ele.Loc);
+                                    }
+                                })
+                                console.log(keploc);
+                                roomArrange();
+                                mapMap.Locs.forEach((Loc)=>{
+                                    if(Loc.visPlayer.length)Loc.visPlayer=Loc.visPlayer.filter(ele=>keploc.has(ele));
+                                });
+                                mapMap.Players.forEach((player)=>{
+                                    if(player.dead&&player.character!="黑影")return;
+                                    if(keploc.has(player.id)){
+                                        player.Loc=keploc.get(player.id);
+                                    }
+                                    else{
+                                        let lim=Math.min(mapMap.Round*2,mapMap.Locs.length);
+                                        let arr=[];
+                                        for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
+                                        arr.sort(()=>main.RANDOM()-0.5);
+                                        for(let i=0;i<lim;i++){
+                                            mapMap.Locs.find((ele)=>ele.id==arr[i]).visPlayer.push(player.id);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    roundend:{
+                        priority:10,
+                        fun:()=>{
+                            if(mapMap.Round>=-1){
+                                let lis=[];
+                                if(mapMap.Round%2==0){
+                                    mapMap.Players.forEach((ele)=>{
+                                        if(ele.dead)return;
+                                        if(ele.character!="黑影"){
+                                            if(main.RANDOM()<0.5)lis.push(ele.Loc);
+                                            else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
+                                        }
+                                    });
+                                }
+                                else if((mapMap.Round+100)%2==1){
+                                    mapMap.Players.forEach((ele)=>{
+                                        if(ele.dead)return;
+                                        if(ele.character=="黑影"){
+                                            if(main.RANDOM()<0.5)lis.push(ele.Loc);
+                                            else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
+                                        }
+                                    });
+                                }
+                                lis.sort((a,b)=>a.toString()<b.toString()?1:-1);
+                                let bc=main.getbc("round");
+                                bc=bc.replace("[end]",mapMap.Round);
+                                bc=bc.replace("[begin]",mapMap.Round+1);
+                                bc=bc.replace("[char]",`位于 ${lis.join(" ")} 的人`);
+                                bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
+                                main.broadcast(bc);
+                            }
+                        }
+                    }
+                }})("打乱房间"),
             ]
         },
         // {

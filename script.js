@@ -366,6 +366,7 @@ function mainMain() {
         if(strc.includes("S"))item.static=true;
         if(strc.includes("M"))item.type="机关";
         if(strc.includes("K"))item.keepInventory=true;
+        if(strc.includes("_"))item.alwaysInvisible=true;
         if(strc.includes("I"))item.invisible=true;
         if(strc.includes("V"))item.alwayVisibie=true;
         if(strc.includes("L")){
@@ -375,6 +376,16 @@ function mainMain() {
         }
         console.log(item);
         return item;
+    }
+
+    function LocContainItem(LocId,cond){
+        let flag=false;
+        mapMap.items.forEach(item=>{
+            if(item.ty!="Player"&&getLoc({ty:item.ty,val:item.val})==LocId){
+                if(cond(item))flag=true;
+            }
+        })
+        return flag;
     }
 
     function gameinit(){
@@ -445,7 +456,7 @@ function mainMain() {
         contentDiv.appendChild(pl0);
 
         let itemslis=document.createElement('p');
-        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间 标记名 颜色 特性”，用空格隔开。房间可以输入编号或简称，若输入字母R则随机生成。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见；L，位置固定，不跟随房间移动。";
+        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间 标记名 颜色 特性”，用空格隔开。房间可以输入编号或简称，若输入字母R则随机生成。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见；L，位置固定，不跟随房间移动；_：辅助标记，始终不可见。";
         itemslis.style.color="#ccc";
         itemslis.style.fontSize="0.9rem";
         contentDiv.appendChild(itemslis);
@@ -694,8 +705,6 @@ function mainMain() {
     async function initMapData(Players0) {
         try {
             initPlayers();
-
-            await initIcon();
 
             await initRule();
 
@@ -1319,6 +1328,11 @@ function mainMain() {
             addItemsAdvanced();
         });
 
+        getButton('#fff',drawAlInv?'隐藏辅助标记':'显示辅助标记',()=>{
+            drawAlInv=!drawAlInv;
+            jumpAccordSTATUS();
+        });
+
         getButton('#fff','直接修改地图信息',()=>{
             showEditor(mapMap);
         });
@@ -1343,7 +1357,12 @@ function mainMain() {
         ModsStependEvent();
     }
 
+    let drawAlInv=false;
+
+    let LocSelected=null;
+
     function defaultLocMaskAction(Loc0){
+        LocSelected=Loc0.id;
         jumpAccordSTATUS();
         let info=document.getElementById('info');
         info.innerHTML=`${Loc0.id}:${mapMap.Roms.find((ele)=>ele.id==Loc0.rom).name}。`;
@@ -1400,6 +1419,7 @@ function mainMain() {
     
 
     function switchRoundMode(player){
+        LocSelected=null;
         STATUS.ty='round';
         STATUS.val=player;
         createG();
@@ -1651,6 +1671,7 @@ function mainMain() {
     }
 
     function switchMoveMode(player,dontLeave,drawcircle=true){
+        LocSelected=null;
         if(player.dead){
             killPlayer(player,false);
             switchMoveMode(player);
@@ -1847,37 +1868,24 @@ function mainMain() {
 
     let mapIcon=new Map();
 
-    function initIcon() {
-        return fetch('icons/icons.json')
-            .then(response => response.json())
-            .then(icons => {
-                console.log('已加载icons', icons);
-                const svgPromises = icons.rom.map(rom => {
-                    return fetch(`icons/rom${rom}.svg`)
-                        .then(response => response.text())
-                        .then(svgText => {
-                            let icon0 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                            const uniqueId = '_' + RANDOM().toString(36);
-                            svgText = svgText.replace(/(id="|url\(#|href="#)([^"]+?)(["\)])/g, 
-                                (match, prefix, id, suffix) => `${prefix}${id}${uniqueId}${suffix}`);
-                            icon0.innerHTML = svgText.replaceAll('fill:#221815', 'fill:#ffffff33');
-                            icon0.setAttribute('width', '60');
-                            icon0.setAttribute('height', '60');
-                            const svg1 = icon0.getElementsByTagName('svg')[0];
-                            svg1.setAttribute('width', '60');
-                            svg1.setAttribute('height', '60');
-                            mapIcon.set(rom, svg1);
-                        })
-                        .catch(error => {
-                            console.warn(`加载图标 rom${rom}.svg 失败`, error);
-                        });
-                });
-                return Promise.all(svgPromises);
-            })
-            .catch(error => {
-                console.error('加载 icons.json 失败', error);
-                return Promise.reject(error);
-            });
+    async function fetchIcon(name) {
+        try{    
+            let response_1 = await fetch(`icons/${name}`);
+            let svgText = await response_1.text();
+            let icon0 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            const uniqueId = '_' + RANDOM().toString(36);
+            svgText = svgText.replace(/(id="|url\(#|href="#)([^"]+?)(["\)])/g,
+                (match, prefix, id, suffix) => `${prefix}${id}${uniqueId}${suffix}`);
+            icon0.innerHTML = svgText.replaceAll('fill:#221815', 'fill:#ffffff33');
+            icon0.setAttribute('width', '60');
+            icon0.setAttribute('height', '60');
+            const svg1 = icon0.getElementsByTagName('svg')[0];
+            svg1.setAttribute('width', '60');
+            svg1.setAttribute('height', '60');
+            mapIcon.set(name, svg1);
+        } catch (error) {
+            console.warn(`加载图标 ${name} 失败`, error);
+        }
     }
 
     function getRoundColor(round){
@@ -2090,11 +2098,27 @@ function mainMain() {
         }
 
         function drawIcon(Loc0){
-            if(Loc0.rom&&mapIcon.has(Loc0.rom)){
-                let svgIcon=mapIcon.get(Loc0.rom).cloneNode(true);
+            function draw(name){
+                let svgIcon=mapIcon.get(name).cloneNode(true);
                 svgIcon.setAttribute('x', Loc0.center[0]-30);
                 svgIcon.setAttribute('y', Loc0.center[1]-30);
                 gMap.appendChild(svgIcon);
+            }
+            if(Loc0.rom){
+                iconlist.forEach(async icon0=>{
+                    //console.log(icon0.cond);
+                    if(LocContainItem(Loc0.id,icon0.cond)){
+                        let name=icon0.src;
+                        //console.log(name);
+                        if(!mapIcon.has(name)){
+                            await fetchIcon(name);
+                            draw(name);
+                        }
+                        else{
+                            draw(name);
+                        }
+                    }
+                })
             }
         }
 
@@ -2356,6 +2380,7 @@ function mainMain() {
     }
 
     function drawItems(Locs,selected) {
+        console.log(LocSelected);
         //console.log('绘制物品', Locs);
         const svg = document.getElementById('gItem');
         svg.innerHTML="";
@@ -2380,6 +2405,7 @@ function mainMain() {
                 case 'Loc':{
                     const locId = item.val;
                     if(!Locs.has(locId))return;
+                    if(item.alwaysInvisible&&(!drawAlInv||Locs.get(locId)!="supervision"))return; 
                     if(!item.alwayVisibie&&Locs.get(locId)!="visited"&&Locs.get(locId)!="supervision")return;
                     if(item.invisible&&Locs.get(locId)!="supervision"&&!item.alwayVisibie)return;
                     let lis0=`Loc ${locId}`;
@@ -2390,6 +2416,7 @@ function mainMain() {
                 case 'Rom':{
                     const locId = mapMap.Locs.find((ele)=>ele.rom==item.val).id;
                     if(!Locs.has(locId))return;
+                    if(item.alwaysInvisible&&(!drawAlInv||Locs.get(locId)!="supervision"))return; 
                     if(!item.alwayVisibie&&Locs.get(locId)!="visited"&&Locs.get(locId)!="supervision")return;
                     if(item.invisible&&Locs.get(locId)!="supervision"&&!item.alwayVisibie)return;
                     let lis0=`Loc ${locId}`;
@@ -2596,6 +2623,10 @@ function mainMain() {
                         let y=20;
                         g.setAttribute('transform', `translate(${x}, ${y})`);
                     }
+                }
+                if(item.alwaysInvisible){
+                    console.log("inv",item)
+                    g.setAttribute('opacity', '0.5');
                 }
                 svg.appendChild(g);
             });
@@ -3163,6 +3194,8 @@ function mainMain() {
 
     let initevents=[];
 
+    let iconlist=[];
+
     let roundendevents=[];
 
     let stependevents=[];
@@ -3364,6 +3397,8 @@ function mainMain() {
 
         stependevents=[];
 
+        iconlist=[];
+
         modlist=[];
 
         modpacks.forEach((mod)=>{
@@ -3390,6 +3425,10 @@ function mainMain() {
                 if(key2=="init"){
                     //console.log(ele[key]);
                     initevents.push(ele[key]);
+                }
+                if(key2=="icon"){
+                    //console.log(ele[key]);
+                    iconlist.push(ele[key]);
                 }
                 if(key2=="roundend"){
                     //console.log(ele[key]);
@@ -3515,7 +3554,7 @@ function mainMain() {
         initDoor, drawDoor, initPlayers, addItems, getLoc, setDoor, drawNames, getCross,
         clearMechan, drawPlayers, switchNormalMode, defaultLocMaskAction, getButton,
         switchRoundMode, LocMaskEvent, reAttriAllPolygons, isNum, isSubseq, getLocorRom,
-        killPlayer, sortVisdots, parseColor, getColor, switchMoveMode, createShrinkingCircle, initIcon,
+        killPlayer, sortVisdots, parseColor, getColor, switchMoveMode, createShrinkingCircle,
         getRoundColor, drawRoundInfo, drawPlayerInfo, caculateDis, mechanAct,
         nextRound, renderAllLayers, jumpAccordSTATUS, pickItem, dropItem, deleteItem,
         moveItem, getItemActual, drawItems, initRule, getbc, parseTextWithColor, getbcdiv, broadcast,
