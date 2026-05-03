@@ -1011,7 +1011,7 @@ let mods = (main)=>{
                                         }
                                     });
                                     lis.sort((a,b)=>a-b);
-                                    bc=bc.replace("[char]",` 位于${lis.join(" ")}的人 `);
+                                    bc=bc.replace("[char]",`位于 ${lis.join(" ")} 的人`);
                                 }
                                 else{
                                     bc=bc.replace("[char]","");
