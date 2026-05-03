@@ -988,126 +988,150 @@ let mods = (main)=>{
                 ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
                     name:Name,
                     config:(dom)=>{
-                        //main.defaultConfig(dom,`要使用 DATA 设定吗？(Y/N) [usedata:Y:string]`,src());
+                        main.defaultConfig(dom,`请设定不同身份的行动顺序。从第 0 回合开始，[order:玩家 布莉萝、黑影:string] 轮流行动。（不同回合间用顿号分隔，同回合间用空格分隔）`,src());
+                        main.defaultConfig(dom,`要使用 DATA 设定吗？(Y/N) [usedata:Y:string]`,src());
                     },
                     roundend:{
                         priority:10,
                         fun:()=>{
-                            if(mapMap.Round>=0){
+                            if(mapMap.Round>=-1){
+                                let Rr=mapMap.Round+1;
+                                let ord=src().order.split("、");
+                                if(!ord.length)return;
+                                let cur=ord[Rr%ord.length].split(" ");
                                 let bc=main.getbc("round");
                                 bc=bc.replace("[end]",mapMap.Round);
                                 bc=bc.replace("[begin]",mapMap.Round+1);
-                                bc=bc.replace("[char]",["玩家","黑影"][mapMap.Round%2]);
+                                
+                                if(src().usedata=="Y"){let lis=[];
+                                    mapMap.Players.forEach((ele)=>{
+                                        if(ele.dead)return;
+                                        if(cur.includes(ele.character)){
+                                            lis.push(ele.Loc);
+                                        }
+                                    });
+                                    lis.sort((a,b)=>a-b);
+                                    bc=bc.replace("[char]",` 位于${lis.join(" ")}的人 `);
+                                }
+                                else{
+                                    bc=bc.replace("[char]","");
+                                }
                                 bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
                                 main.broadcast(bc);
                             }
                         }
                     }
                 }})("回合广播"),
-                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
-                    name:Name,
-                    config:(dom)=>{
-                    },
-                    init:{
-                        priority:1,
-                        fun:()=>{
-                            main.addItems([{"Rom":44,"color":'#ccc',"name":"打乱","type":"机关","static":true}]);
-                        }
-                    },
-                    mechan:{
-                        cond:(item)=>item.name=='打乱',
-                        click:(item)=>{
-                            if(STATUS.ty!="normal"&&(!item.used||item.used=="主持")){
-                                STATUS.val.stpData.push({"ty":"Mechan","val":item.name});
-                                main.killPlayer(STATUS.val);
-                                main.switchNormalMode();
-                            }
-                            else if(STATUS.ty=="normal"&&!item.used){
-                                item.used="主持";
-                            }
-                            else if(STATUS.ty=="normal"&&item.used){
-                                item.used=null;
+            ]
+        },
+        {
+            name:"4.29神秘随机局",
+            notdefault:true,
+            list:[
+                    ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                        name:Name,
+                        config:(dom)=>{
+                        },
+                        init:{
+                            priority:1,
+                            fun:()=>{
+                                main.addItems([{"Rom":44,"color":'#ccc',"name":"打乱","type":"机关","static":true}]);
                             }
                         },
-                        result:(item)=>{
-                            if(item.used){
-                                main.broadcast(main.getbc("reset"));
-                                mapMap.items.forEach(item=>{
-                                    if(main.RANDOM()<0.5){
-                                        if(item.ty=='Loc'){
-                                            item.ty='Rom';
-                                            item.val=mapMap.Locs.find(ele=>ele.id==item.val).rom;
+                        mechan:{
+                            cond:(item)=>item.name=='打乱',
+                            click:(item)=>{
+                                if(STATUS.ty!="normal"&&(!item.used||item.used=="主持")){
+                                    STATUS.val.stpData.push({"ty":"Mechan","val":item.name});
+                                    main.killPlayer(STATUS.val);
+                                    main.switchNormalMode();
+                                }
+                                else if(STATUS.ty=="normal"&&!item.used){
+                                    item.used="主持";
+                                }
+                                else if(STATUS.ty=="normal"&&item.used){
+                                    item.used=null;
+                                }
+                            },
+                            result:(item)=>{
+                                if(item.used){
+                                    main.broadcast(main.getbc("reset"));
+                                    mapMap.items.forEach(item=>{
+                                        if(main.RANDOM()<0.5){
+                                            if(item.ty=='Loc'){
+                                                item.ty='Rom';
+                                                item.val=mapMap.Locs.find(ele=>ele.id==item.val).rom;
+                                            }
+                                            else if(item.ty=='Rom'){
+                                                item.ty='Loc';
+                                                item.val=mapMap.Locs.find(ele=>ele.rom==item.val).id;
+                                            }
                                         }
-                                        else if(item.ty=='Rom'){
-                                            item.ty='Loc';
-                                            item.val=mapMap.Locs.find(ele=>ele.rom==item.val).id;
+                                    })
+                                    console.log(mapMap);
+                                    let keploc=new Map();
+                                    mapMap.Players.forEach(ele=>{
+                                        if(main.RANDOM()<0.5){
+                                            keploc.set(ele.id,ele.Loc);
                                         }
-                                    }
-                                })
-                                console.log(mapMap);
-                                let keploc=new Map();
-                                mapMap.Players.forEach(ele=>{
-                                    if(main.RANDOM()<0.5){
-                                        keploc.set(ele.id,ele.Loc);
-                                    }
-                                })
-                                console.log(keploc);
-                                roomArrange();
-                                mapMap.Locs.forEach((Loc)=>{
-                                    if(Loc.visPlayer.length)Loc.visPlayer=Loc.visPlayer.filter(ele=>keploc.has(ele));
-                                });
-                                mapMap.Players.forEach((player)=>{
-                                    if(player.dead&&player.character!="黑影")return;
-                                    if(keploc.has(player.id)){
-                                        player.Loc=keploc.get(player.id);
-                                    }
-                                    else{
-                                        let lim=Math.min(mapMap.Round*2,mapMap.Locs.length);
-                                        let arr=[];
-                                        for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
-                                        arr.sort(()=>main.RANDOM()-0.5);
-                                        for(let i=0;i<lim;i++){
-                                            mapMap.Locs.find((ele)=>ele.id==arr[i]).visPlayer.push(player.id);
+                                    })
+                                    console.log(keploc);
+                                    roomArrange();
+                                    mapMap.Locs.forEach((Loc)=>{
+                                        if(Loc.visPlayer.length)Loc.visPlayer=Loc.visPlayer.filter(ele=>keploc.has(ele));
+                                    });
+                                    mapMap.Players.forEach((player)=>{
+                                        if(player.dead&&player.character!="黑影")return;
+                                        if(keploc.has(player.id)){
+                                            player.Loc=keploc.get(player.id);
                                         }
-                                    }
-                                });
-                            }
-                        }
-                    },
-                    roundend:{
-                        priority:10,
-                        fun:()=>{
-                            if(mapMap.Round>=-1){
-                                let lis=[];
-                                if(mapMap.Round%2==0){
-                                    mapMap.Players.forEach((ele)=>{
-                                        if(ele.dead)return;
-                                        if(ele.character!="黑影"){
-                                            if(main.RANDOM()<0.5)lis.push(ele.Loc);
-                                            else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
+                                        else{
+                                            let lim=Math.min(mapMap.Round*2,mapMap.Locs.length);
+                                            let arr=[];
+                                            for(let i=1;i<=mapMap.Locs.length;i++)arr.push(i);
+                                            arr.sort(()=>main.RANDOM()-0.5);
+                                            for(let i=0;i<lim;i++){
+                                                mapMap.Locs.find((ele)=>ele.id==arr[i]).visPlayer.push(player.id);
+                                            }
                                         }
                                     });
                                 }
-                                else if((mapMap.Round+100)%2==1){
-                                    mapMap.Players.forEach((ele)=>{
-                                        if(ele.dead)return;
-                                        if(ele.character=="黑影"){
-                                            if(main.RANDOM()<0.5)lis.push(ele.Loc);
-                                            else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
-                                        }
-                                    });
+                            }
+                        },
+                        roundend:{
+                            priority:10,
+                            fun:()=>{
+                                if(mapMap.Round>=-1){
+                                    let lis=[];
+                                    if(mapMap.Round%2==0){
+                                        mapMap.Players.forEach((ele)=>{
+                                            if(ele.dead)return;
+                                            if(ele.character!="黑影"){
+                                                if(main.RANDOM()<0.5)lis.push(ele.Loc);
+                                                else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
+                                            }
+                                        });
+                                    }
+                                    else if((mapMap.Round+100)%2==1){
+                                        mapMap.Players.forEach((ele)=>{
+                                            if(ele.dead)return;
+                                            if(ele.character=="黑影"){
+                                                if(main.RANDOM()<0.5)lis.push(ele.Loc);
+                                                else lis.push(`[${mapMap.Roms.find((elee)=>elee.id==mapMap.Locs.find(eleee=>eleee.id==ele.Loc).rom).name}]`);
+                                            }
+                                        });
+                                    }
+                                    lis.sort((a,b)=>a.toString()<b.toString()?1:-1);
+                                    let bc=main.getbc("round");
+                                    bc=bc.replace("[end]",mapMap.Round);
+                                    bc=bc.replace("[begin]",mapMap.Round+1);
+                                    bc=bc.replace("[char]",`位于 ${lis.join(" ")} 的人`);
+                                    bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
+                                    main.broadcast(bc);
                                 }
-                                lis.sort((a,b)=>a.toString()<b.toString()?1:-1);
-                                let bc=main.getbc("round");
-                                bc=bc.replace("[end]",mapMap.Round);
-                                bc=bc.replace("[begin]",mapMap.Round+1);
-                                bc=bc.replace("[char]",`位于 ${lis.join(" ")} 的人`);
-                                bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
-                                main.broadcast(bc);
                             }
                         }
-                    }
-                }})("打乱房间"),
+                    }})("打乱房间"),
             ]
         },
         // {
