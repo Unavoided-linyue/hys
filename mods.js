@@ -992,7 +992,7 @@ let mods = (main)=>{
                         main.defaultConfig(dom,`要使用 DATA 设定吗？(Y/N) [usedata:Y:string]`,src());
                     },
                     roundend:{
-                        priority:10,
+                        priority:1000000000000000000000000000000000000000000000000,
                         fun:()=>{
                             if(mapMap.Round>=-1){
                                 let Rr=mapMap.Round+1;
