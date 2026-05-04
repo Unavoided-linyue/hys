@@ -1232,6 +1232,178 @@ function mainMain() {
         }
     }
 
+    function callInnerRandom(result){
+
+        function parseRan(dom){
+            dom.innerHTML='';
+            ran.forEach((group) => {
+                let gro=document.createElement('details');
+                gro.style.marginBottom="3px";
+                if(group.open=="true")gro.setAttribute("open","true");
+                let summ=document.createElement('summary');
+                summ.innerText=group.name;
+                summ.contentEditable=true;
+                summ.style.fontSize="0.9rem";
+                summ.style.padding="3px";
+                summ.addEventListener('click',()=>{
+                    if(gro.open){
+                        group.open="false";
+                    }
+                    else group.open="true";
+                });
+                summ.addEventListener('blur',()=>{
+                    if(summ.innerText.trim()==''){
+                        ran.splice(ran.indexOf(group),1);
+                        gro.remove();
+                    }
+                    else{
+                        group.name=summ.innerText;
+                    }
+                });
+                summ.addEventListener('keydown',(e)=>{
+                    if(e.key==='Enter'){
+                        e.preventDefault();
+                        summ.blur();
+                    }
+                });
+                gro.appendChild(summ);
+                let lis=document.createElement('p');
+                lis.style.whiteSpace="pre-wrap";
+                lis.innerText=group.text;
+                lis.addEventListener('blur',()=>{
+                    group.text=lis.innerText;
+                });
+                lis.contentEditable=true;
+                lis.style.fontSize="0.9rem";
+                lis.style.maxHeight="150px";
+                lis.style.overflowY="auto";
+                lis.style.border="1px solid #ccc";
+                lis.style.padding="3px";
+                lis.style.color="#ccc";
+                gro.appendChild(lis);
+                dom.appendChild(gro);
+            });
+        }
+
+        const existing = document.getElementById('broadcastPopupOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'broadcastPopupOverlay';
+        overlay.className = 'popup-overlay';
+
+        const popup = document.createElement('div');
+        popup.className = 'popup-container';
+
+        const header = document.createElement('div');
+        header.className = 'popup-header';
+
+        let title = document.createElement('text');
+        title.innerText = '随机选取器';
+        title.style.color = '#fff';
+
+        header.appendChild(title);
+        popup.appendChild(header);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'broadcasts';
+
+        if(result){
+            let resultdiv=document.createElement('div');
+            result.forEach((item) => {
+                let itemDiv=document.createElement('div');
+                itemDiv.style.margin="5px";
+                let title=document.createElement('div');
+                title.innerText=item.title;
+                title.style.color="#ccc";
+                title.style.fontSize="1.2rem";
+                itemDiv.appendChild(title);
+                let val=document.createElement('div');
+                val.innerText=item.val;
+                val.style.color="#0f0";
+                val.style.fontSize="0.8rem";
+                val.style.margin="2px";
+                itemDiv.appendChild(val);
+                resultdiv.appendChild(itemDiv);
+            });
+            contentDiv.appendChild(resultdiv);
+        }
+
+        let readyp=document.createElement('p');
+        readyp.style.color="#0cf";
+        readyp.style.fontSize="0.9rem";
+        readyp.innerText="（输入一些以空格分隔的文本以抽取）";
+        readyp.style.marginBottom="3px";
+        readyp.contentEditable=true;
+        readyp.addEventListener('keydown',(e)=>{
+            if(e.key==='Enter'){
+                e.preventDefault();
+                readyp.blur();
+            }
+        });
+        contentDiv.appendChild(readyp);
+        let readybutton=document.createElement('button');
+        readybutton.textContent="抽取";
+        readybutton.style.marginBottom="3px";
+        readybutton.addEventListener('click',()=>{
+            let srclis=[];
+            ran.forEach((group) => {
+                if(group.open=="true"){
+                    let lis=group.text.split(/\r?\n/).filter((ele)=>ele.trim()!='');
+                    srclis=srclis.concat(lis);
+                }
+            });
+            if(!srclis.length){
+                alert("请至少设定一个选项");
+                return;
+            }
+            let str=readyp.innerText.trim();
+            let result=[];
+            let arr=readyp.innerText.trim().split(" ");
+            arr.forEach((ele) => {
+                result.push({title:ele,val:srclis[Math.floor(Math.random()*srclis.length)]});
+            });
+            console.log(result);
+            localStorage.setItem("ranGroups",JSON.stringify(ran));
+            callInnerRandom(result);
+        });
+        contentDiv.appendChild(readybutton);
+
+        let ran = localStorage.getItem("ranGroups");
+        if(ran){
+            ran=JSON.parse(ran);
+        }
+        else{
+            ran=[];
+        }
+
+        let groupDiv=document.createElement('div');
+        contentDiv.appendChild(groupDiv);
+        parseRan(groupDiv);
+
+        let button0=document.createElement('button');
+        button0.textContent="添加分组";
+        button0.style.marginTop="3px";
+        button0.addEventListener('click',()=>{
+            ran.push({name:"点击输入文字",text:"请输入文本，每行一个选项，双引号内的内容会被识别为颜色",open:"true"});
+            parseRan(groupDiv);
+        });
+        contentDiv.appendChild(button0);
+
+        let button1=document.createElement('button');
+        button1.textContent="关闭";
+        button1.style.marginTop="3px";
+        button1.addEventListener('click',()=>{
+            overlay.remove();
+        });
+        contentDiv.appendChild(button1);
+
+        popup.appendChild(contentDiv);
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    }
+
     function addItemsAdvanced(){
         const existing = document.getElementById('broadcastPopupOverlay');
         if (existing) existing.remove();
@@ -1250,7 +1422,7 @@ function mainMain() {
         contentDiv.className = 'broadcasts';
 
         let itemslis=document.createElement('p');
-        itemslis.innerText="在这里添加标记，格式为“房间简称或位置编号 标记名 颜色 特性”，用空格隔开。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见。";
+        itemslis.innerText="可以在这里添加额外的初始标记，格式为“房间 标记名 颜色 特性”，用空格隔开。房间可以输入编号或简称，若输入字母R则随机生成。特性是一个字符串，当包含以下字符时：S，不受重启影响；M，作为六边形机关；K，死亡不掉落；I，角色界面不可见；V，总是可见；L，位置固定，不跟随房间移动；_：辅助标记，始终不可见。";
         itemslis.style.color="#ccc";
         itemslis.style.fontSize="0.9rem";
         contentDiv.appendChild(itemslis);
@@ -1335,6 +1507,12 @@ function mainMain() {
 
         getButton('#fff','直接修改地图信息',()=>{
             showEditor(mapMap);
+        });
+
+        buttonDiv.appendChild(document.createElement('br'));
+
+        getButton('#fff','随机选取器',()=>{
+            callInnerRandom();
         });
 
         buttonDiv.appendChild(document.createElement('br'));
