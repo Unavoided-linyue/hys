@@ -287,7 +287,8 @@ let mods = (main)=>{
                         click_additional:(item)=>{
                             let str=prompt("请输入目标房间。留空默认为东餐。");
                             let li=main.getLoc(main.getLocorRom(str));
-                            li=li||11;
+                            li=mapMap.Locs.find((ele)=>ele.id==li);
+                            li=li?li.rom:11;
                             mapMap.ModsData.awakedest=li;
                             let bc=main.getbc("awake");
                             bc=bc.replaceAll("[Rom]",`[${mapMap.Roms.find((ele)=>ele.id==li).name}]`);
@@ -1132,6 +1133,119 @@ let mods = (main)=>{
                             }
                         }
                     }})("打乱房间"),
+            ]
+        },
+        {
+            name:"5.12战力规则",
+            notdefault:true,
+            list:[
+                    ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                        name:Name,
+                        config:(dom)=>{
+                        },
+                        init:{
+                            priority:10000,
+                            fun:()=>{
+                                mapMap.ModsData.cbpbase=[];
+                                mapMap.Players.forEach((player,i)=>{
+                                    main.addItems([{
+                                        "name":i+1,
+                                        "Player":player.id,
+                                        "keepInventory":true,
+                                        "color":0,
+                                        "static":true
+                                    }]);
+                                    mapMap.ModsData.cbpbase[player.id]=i+1;
+                                })
+                                let rom0=Math.floor(main.RANDOM()*mapMap.Locs.length)+1;
+                                main.addItems([{
+                                    "name":'集邮',
+                                    "Rom":rom0,
+                                    "color":5,
+                                    "static":true
+                                }]);
+                            }
+                        },
+                        item:{
+                            cond:(item)=>main.isNum(item.name),
+                            info:(item)=>{
+                                let info=document.getElementById('info');
+                                info.innerHTML=`战力为${item.name}。再点一次以修改。`;
+                            },
+                            click:(item)=>{
+                                    let str=prompt("请输入战力",item.name);
+                                    if(!main.isNum(str))return;
+                                    mapMap.ModsData.cbpbase[item.val]=mapMap.ModsData.cbpbase[item.val]+parseInt(str)-parseInt(item.name);
+                                    item.name=str;
+                            },
+                        },
+                        stepend:{
+                            priority:10000000,
+                            fun:()=>{
+                                mapMap.Players.forEach((player)=>{
+                                    let addval=0;let table={
+                                        "金币":1,"口罩":2,"手电":3,"变装":4,"小熊":5,"望远":6,"靴子":7,"开锁":8,"钻石":9,
+                                        "集邮":20,"十字":20,"霰弹":20
+                                    }
+                                    mapMap.items.forEach((item)=>{
+                                        if(item.ty=='Player'&&item.val==player.id){
+                                            addval+=table[item.name]||0;
+                                        }
+                                    })
+                                    mapMap.items.forEach((item)=>{
+                                        if(item.ty=='Player'&&item.val==player.id&&main.isNum(item.name)){
+                                            //console.log(player.name,item);
+                                            item.name=addval+mapMap.ModsData.cbpbase[player.id];
+                                        }
+                                    })
+                                });
+                            }
+                        },
+                        roundend:{
+                            priority:100000000000000000000000000000000000000000000000000000000,
+                            fun:()=>{
+                                let plcbp=[];
+                                mapMap.Players.forEach((player)=>{
+                                    mapMap.items.forEach((item)=>{
+                                        if(item.ty=="Player"&&item.val==player.id&&main.isNum(item.name)){
+                                            plcbp[player.id]=parseInt(item.name);
+                                        }
+                                    });
+                                });
+                                mapMap.Players.sort((a,b)=>plcbp[a.id]-plcbp[b.id]);
+                                console.log(mapMap.Players);
+                                mapMap.items.forEach((item)=>{
+                                    item.caught=null;
+                                });
+                                main.catchItemAppendFunctions(mapMap.items);
+                                if(mapMap.Round>=-1){
+                                    let lis=[];
+                                    if(mapMap.Round%2==0){
+                                        mapMap.Players.forEach((ele,i)=>{
+                                            if(ele.dead)return;
+                                            if(i!=mapMap.Players.length-1){
+                                                lis.push(ele.Loc);
+                                            }
+                                        });
+                                    }
+                                    else if((mapMap.Round+100)%2==1){
+                                        mapMap.Players.forEach((ele,i)=>{
+                                            if(ele.dead)return;
+                                            if(i==mapMap.Players.length-1){
+                                                lis.push(ele.Loc);
+                                            }
+                                        });
+                                    }
+                                    let bc=main.getbc("round");
+                                    bc=bc.replace("[end]",mapMap.Round);
+                                    bc=bc.replace("[begin]",mapMap.Round+1);
+                                    bc=bc.replace("[char]",`位于 ${lis.join(" ")} 的人`);
+                                    bc=bc.replace("[color]",main.getRoundColor(mapMap.Round+1));
+                                    main.broadcast(bc);
+                                }
+                            }
+                        }
+                    }})("自动算战力（请关闭原有回合广播）"),
             ]
         },
         // {
