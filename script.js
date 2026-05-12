@@ -925,13 +925,6 @@ function mainMain() {
             player.stpData=player.stpData||[];
             player.Loc=player.Loc||Math.floor(RANDOM()*mapMap.Locs.length+1);
         });
-        mapMap.Players.forEach((player,i) => {
-            let x=0; let y=mapMap.height+55;
-            if(mapMap.Players.length>1)x=getMida(40,560,i,mapMap.Players.length-1);
-            else x=300;
-            player.center=[x,y];
-        });
-
     }
 
     function addItems(itemsReady){
@@ -1232,7 +1225,7 @@ function mainMain() {
         }
     }
 
-    function callInnerRandom(result){
+    function callInnerRandom(result,cnt){
 
         function parseRan(dom){
             dom.innerHTML='';
@@ -1274,7 +1267,7 @@ function mainMain() {
                     group.text=lis.innerText;
                 });
                 lis.contentEditable=true;
-                lis.style.fontSize="0.9rem";
+                lis.style.fontSize="0.8rem";
                 lis.style.maxHeight="150px";
                 lis.style.overflowY="auto";
                 lis.style.border="1px solid #ccc";
@@ -1308,22 +1301,80 @@ function mainMain() {
         const contentDiv = document.createElement('div');
         contentDiv.className = 'broadcasts';
 
+        let prom="";
+        if(cnt){
+            title.innerText+=`（${cnt}/${mapMap.randomHistory.length}）`;
+            let cus=mapMap.randomHistory.find((ele)=>ele.num==cnt);
+            if(!cus)return;
+            result=cus.result;
+            prom=cus.prompt;
+            if(cnt>1){
+                let button0=document.createElement('button');
+                button0.textContent="上一组";
+                button0.style.marginTop="3px";
+                button0.style.marginLeft="3px";
+                button0.addEventListener('click',()=>{
+                    callInnerRandom(null,cnt-1);
+                });
+                title.appendChild(button0);
+            }
+            if(cnt<mapMap.randomHistory.length){
+                let button0=document.createElement('button');
+                button0.textContent="下一组";
+                button0.style.marginTop="3px";
+                button0.style.marginLeft="3px";
+                button0.addEventListener('click',()=>{
+                    callInnerRandom(null,cnt+1);
+                });
+                title.appendChild(button0);
+            }
+            if(1){
+                let button0=document.createElement('button');
+                button0.textContent="删除本组";
+                button0.style.marginTop="3px";
+                button0.style.marginLeft="3px";
+                button0.addEventListener('click',()=>{
+                    let ans=confirm("确定要删除本组吗？");
+                    if(!ans)return;
+                    mapMap.randomHistory.splice(cnt - 1, 1);
+                    mapMap.randomHistory.forEach((ele,i)=>{
+                        ele.num=i+1;
+                    });
+                    callInnerRandom(null,Math.max(cnt-1,1));
+                });
+                title.appendChild(button0);
+            }
+        }
+
         if(result){
             let resultdiv=document.createElement('div');
             result.forEach((item) => {
-                let itemDiv=document.createElement('div');
-                itemDiv.style.margin="5px";
-                let title=document.createElement('div');
-                title.innerText=item.title;
-                title.style.color="#ccc";
-                title.style.fontSize="1.2rem";
+                let itemDiv = document.createElement('div');
+                itemDiv.style.margin = "5px";
+
+                let title = document.createElement('div');
+                title.innerText = item.title;
+                title.style.color = "#ccc";
+                title.style.fontSize = "1.2rem";
                 itemDiv.appendChild(title);
-                let val=document.createElement('div');
-                val.innerText=item.val;
-                val.style.color="#0f0";
-                val.style.fontSize="0.8rem";
-                val.style.margin="2px";
+
+                let val = document.createElement('div');
+                val.innerText = item.val;
+                val.style.color = "#0f0";
+                val.style.fontSize = "0.8rem";
+                val.style.margin = "2px";
+                val.style.display = "inline-block";
                 itemDiv.appendChild(val);
+
+                let rir = document.createElement('div');
+                rir.innerText = `（${item.rid[0]}/${item.rid[1]}）`;
+                rir.style.color = "#00ccff88";
+                rir.style.fontSize = "0.7rem";
+                rir.style.display = "inline-block";
+                rir.style.marginLeft = "5px";
+
+                val.appendChild(rir);
+
                 resultdiv.appendChild(itemDiv);
             });
             contentDiv.appendChild(resultdiv);
@@ -1332,7 +1383,7 @@ function mainMain() {
         let readyp=document.createElement('p');
         readyp.style.color="#0cf";
         readyp.style.fontSize="0.9rem";
-        readyp.innerText="（输入一些以空格分隔的文本以抽取）";
+        readyp.innerText=prom||"（输入一些以空格分隔的文本以抽取，也可以用冒号在其后追加所需分组名称，用空格隔开。可以用分号分隔多个不同类的抽取。）";
         readyp.style.marginBottom="3px";
         readyp.contentEditable=true;
         readyp.addEventListener('keydown',(e)=>{
@@ -1345,7 +1396,10 @@ function mainMain() {
         let readybutton=document.createElement('button');
         readybutton.textContent="抽取";
         readybutton.style.marginBottom="3px";
+        mapMap.randomHistory=mapMap.randomHistory||[];
+        let cntt=mapMap.randomHistory.length+1;
         readybutton.addEventListener('click',()=>{
+            const rng = new Math.seedrandom(`${mapMap.seed}__${cntt}`);
             let srclis=[];
             ran.forEach((group) => {
                 if(group.open=="true"){
@@ -1353,19 +1407,32 @@ function mainMain() {
                     srclis=srclis.concat(lis);
                 }
             });
-            if(!srclis.length){
-                alert("请至少设定一个选项");
-                return;
-            }
             let str=readyp.innerText.trim();
+            str=str.replaceAll(';','；');
+            str=str.replaceAll(':','：');
             let result=[];
-            let arr=readyp.innerText.trim().split(" ");
-            arr.forEach((ele) => {
-                result.push({title:ele,val:srclis[Math.floor(Math.random()*srclis.length)]});
-            });
+            str.split('；').forEach((sts)=>{
+                let ar0=sts.split('：');
+                let lis=[];
+                if(!ar0[1])lis=srclis;
+                else{
+                    ran.forEach((group)=>{
+                        if(ar0[1].split(' ').includes(group.name)){
+                            let lis0=group.text.split(/\r?\n/).filter((ele)=>ele.trim()!='');
+                            lis=lis.concat(lis0);
+                        }
+                    })
+                }
+                if(!lis.length)lis.push("（请至少提供一个备选项）");
+                ar0[0].split(' ').forEach((st)=>{
+                    let sel=Math.floor(rng()*lis.length);
+                    result.push({title:st,val:lis[sel],rid:[sel+1,lis.length]});
+                })
+            })
             console.log(result);
+            mapMap.randomHistory.push({num:cntt,result:result,prompt:str});
             localStorage.setItem("ranGroups",JSON.stringify(ran));
-            callInnerRandom(result);
+            callInnerRandom(result,cntt);
         });
         contentDiv.appendChild(readybutton);
 
@@ -2051,7 +2118,7 @@ function mainMain() {
             let response_1 = await fetch(`icons/${name}`);
             let svgText = await response_1.text();
             let icon0 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            const uniqueId = '_' + RANDOM().toString(36);
+            const uniqueId = '_' + Math.random().toString(36);
             svgText = svgText.replace(/(id="|url\(#|href="#)([^"]+?)(["\)])/g,
                 (match, prefix, id, suffix) => `${prefix}${id}${uniqueId}${suffix}`);
             icon0.innerHTML = svgText.replaceAll('fill:#221815', 'fill:#ffffff33');
@@ -2483,6 +2550,7 @@ function mainMain() {
     }
 
     function jumpAccordSTATUS(){
+        ModsStependEvent();
         if(STATUS.ty=='move'){
             switchMoveMode(STATUS.val,true,false);
         }
@@ -2558,8 +2626,8 @@ function mainMain() {
     }
 
     function drawItems(Locs,selected) {
-        console.log(LocSelected);
-        //console.log('绘制物品', Locs);
+        //console.log(LocSelected);
+        console.log('绘制物品', Locs);
         const svg = document.getElementById('gItem');
         svg.innerHTML="";
 
@@ -2612,7 +2680,12 @@ function mainMain() {
                 }
             }
         });
-
+        mapMap.Players.forEach((player,i)=>{
+            let x=0; let y=mapMap.height+55;
+            if(mapMap.Players.length>1)x=getMida(40,560,i,mapMap.Players.length-1);
+            else x=300;
+            player.center=[x,y];
+        });
         for (let [type, itemList] of itemsToDraw.entries()) {
             //console.log(type, itemList);
             let ttype=type.split(' ');
