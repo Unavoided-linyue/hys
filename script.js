@@ -1305,44 +1305,46 @@ function mainMain() {
         if(cnt){
             title.innerText+=`（${cnt}/${mapMap.randomHistory.length}）`;
             let cus=mapMap.randomHistory.find((ele)=>ele.num==cnt);
-            if(!cus)return;
-            result=cus.result;
-            prom=cus.prompt;
-            if(cnt>1){
-                let button0=document.createElement('button');
-                button0.textContent="上一组";
-                button0.style.marginTop="3px";
-                button0.style.marginLeft="3px";
-                button0.addEventListener('click',()=>{
-                    callInnerRandom(null,cnt-1);
-                });
-                title.appendChild(button0);
-            }
-            if(cnt<mapMap.randomHistory.length){
-                let button0=document.createElement('button');
-                button0.textContent="下一组";
-                button0.style.marginTop="3px";
-                button0.style.marginLeft="3px";
-                button0.addEventListener('click',()=>{
-                    callInnerRandom(null,cnt+1);
-                });
-                title.appendChild(button0);
-            }
-            if(1){
-                let button0=document.createElement('button');
-                button0.textContent="删除本组";
-                button0.style.marginTop="3px";
-                button0.style.marginLeft="3px";
-                button0.addEventListener('click',()=>{
-                    let ans=confirm("确定要删除本组吗？");
-                    if(!ans)return;
-                    mapMap.randomHistory.splice(cnt - 1, 1);
-                    mapMap.randomHistory.forEach((ele,i)=>{
-                        ele.num=i+1;
+            if(!cus)0;
+            else{
+                result=cus.result;
+                prom=cus.prompt;
+                if(cnt>1){
+                    let button0=document.createElement('button');
+                    button0.textContent="上一组";
+                    button0.style.marginTop="3px";
+                    button0.style.marginLeft="3px";
+                    button0.addEventListener('click',()=>{
+                        callInnerRandom(null,cnt-1);
                     });
-                    callInnerRandom(null,Math.max(cnt-1,1));
-                });
-                title.appendChild(button0);
+                    title.appendChild(button0);
+                }
+                if(cnt<mapMap.randomHistory.length){
+                    let button0=document.createElement('button');
+                    button0.textContent="下一组";
+                    button0.style.marginTop="3px";
+                    button0.style.marginLeft="3px";
+                    button0.addEventListener('click',()=>{
+                        callInnerRandom(null,cnt+1);
+                    });
+                    title.appendChild(button0);
+                }
+                if(1){
+                    let button0=document.createElement('button');
+                    button0.textContent="删除本组";
+                    button0.style.marginTop="3px";
+                    button0.style.marginLeft="3px";
+                    button0.addEventListener('click',()=>{
+                        let ans=confirm("确定要删除本组吗？");
+                        if(!ans)return;
+                        mapMap.randomHistory.splice(cnt - 1, 1);
+                        mapMap.randomHistory.forEach((ele,i)=>{
+                            ele.num=i+1;
+                        });
+                        callInnerRandom(null,Math.max(cnt-1,1));
+                    });
+                    title.appendChild(button0);
+                }
             }
         }
 
@@ -1579,7 +1581,7 @@ function mainMain() {
         buttonDiv.appendChild(document.createElement('br'));
 
         getButton('#fff','随机选取器',()=>{
-            callInnerRandom();
+            callInnerRandom(null,mapMap.randomHistory?mapMap.randomHistory.length:0);
         });
 
         buttonDiv.appendChild(document.createElement('br'));
