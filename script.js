@@ -2283,7 +2283,7 @@ function mainMain() {
         })
     }
     
-    function nextRound(){
+    async function nextRound(){
         let carrier=document.getElementById('carrier');
         copySvgAsPngToClipboard(carrier);
         saveMap(`R${mapMap.Round}`);
@@ -2306,13 +2306,13 @@ function mainMain() {
             player.Loc=player.Loclast;
             player.stpData=[];
         });
-        sortVisdots();
         mechanAct();
         ModsRoundendEvent();
         mapMap.items.forEach((item) => {
             item.used=null;
         });
-        showBroadcasts();
+        sortVisdots();
+        await showBroadcasts();
         let bd1=document.getElementById('bd1');
         saveReplay(mapMap.Round,carrier,bd1);
         mapMap.Round++;
@@ -2577,6 +2577,9 @@ function mainMain() {
     }
 
     function dropItem(item,player){
+        if(item.ty!="Player")return;
+        if(!player)player=mapMap.Players.find((ele)=>ele.id==item.val);
+        if(!player)return;
         item.ty=item.oldTy||"Rom";
         if(item.ty=="Loc"){
             item.val=player.Loclast;
@@ -2594,8 +2597,6 @@ function mainMain() {
         console.log('删除物品', item, ind);
         if(ind>=0)mapMap.items.splice(ind,1);
     }
-
-    
 
     function moveItem(item){
         let str=prompt('请输入位置或房间名。可以输入简称。');
@@ -2761,6 +2762,8 @@ function mainMain() {
                     g.querySelector('.item-back').setAttribute('fill', '#000000cc');
                 });
 
+                let afterclick=null;
+
                 if(item.id==selected){
                     let color0=tinycolor.mix(item.color, '#fff', 50)
                     let info=document.getElementById('info');
@@ -2794,7 +2797,7 @@ function mainMain() {
                         showEditor(item);
                         jumpAccordSTATUS();
                     });
-                    g.addEventListener('click', ()=>{
+                    afterclick=()=>{
                         if(item.click){
                             item.click(item);
                         }
@@ -2805,13 +2808,99 @@ function mainMain() {
                             drawPlayers([STATUS.val],"#00000000");
                         }
                         jumpAccordSTATUS();
-                    });
+                    };
                 }
                 else{
-                    g.addEventListener('click', ()=>{
+                    afterclick=()=>{
                         drawItems(Locs,item.id);
-                    });
+                    }
                 }
+
+                g.addEventListener('mousedown',()=>{
+                    let timeid=setTimeout(()=>{
+                        console.log('mousedown',item);
+                        let item0=item;
+                        mapMap.items.splice(mapMap.items.indexOf(item),1);
+                        drawItems(Locs);
+                        let g0=g.cloneNode(true);
+                        let carr=document.getElementById('carrier');
+                        carr.appendChild(g0);
+                        document.querySelectorAll('.item-group').forEach((ele)=>{
+                            ele.setAttribute('pointer-events', 'none');
+                        });
+                        let carrier=document.getElementById('carrier');
+                        let onmove=(e)=>{
+                            let rect=carr.getBoundingClientRect();
+                            let x=(e.clientX-rect.left)/rect.width*parseInt(carr.getAttribute('viewBox').split(' ')[2]);
+                            let y=(e.clientY-rect.top)/rect.height*parseInt(carr.getAttribute('viewBox').split(' ')[3]);
+                            g0.setAttribute('transform', `translate(${x}, ${y})`);
+                            //console.log(e.clientX,e.clientY,x,y);
+                        }
+                        let onup=(e)=>{
+                            console.log(item0.newloc);
+                            console.log(item0.newplayer);
+                            if(item0.newloc){
+                                if(item0.ty=='Player')dropItem(item0);
+                                if(item0.ty=='Rom')item0.val=mapMap.Locs.find((ele)=>ele.id==item0.newloc).rom;
+                                else item0.val=item0.newloc;
+                                console.log(item0);
+                            }
+                            if(item0.newplayer){
+                                let player0=mapMap.Players.find((ele)=>ele.name==item0.newplayer);
+                                if(player0){
+                                    pickItem(item0,player0);
+                                }
+                            }
+                            Reflect.deleteProperty(item0,'newloc');
+                            Reflect.deleteProperty(item0,'newplayer');
+                            addItems([item0]);
+                            jumpAccordSTATUS();
+                            carrier.removeEventListener('mousemove',onmove);
+                            carrier.removeEventListener('mouseup',onup)
+                        }
+                        carrier.addEventListener('mousemove',onmove);
+                        carrier.addEventListener('mouseup',onup);
+                        LocMaskEvent([
+                            {
+                                ty: 'mouseenter',
+                                lamda: (Locid,poly0) => {
+                                    return () => {
+                                        poly0.setAttribute('fill',item.color);
+                                        poly0.setAttribute('fill-opacity',0.3);
+                                        item0.newloc=Locid;
+                                    }
+                                }
+                            },
+                            {
+                                ty: 'mouseleave',
+                                lamda: (Locid,poly0) => {
+                                    return () => {
+                                        poly0.setAttribute('fill','none');
+                                        if(item0.newloc==Locid)item0.newloc=null;
+                                    }
+                                }
+                            }
+                        ]);
+                        document.querySelectorAll('.namePlayer').forEach((ele)=>{
+                            let color0=ele.getAttribute('fill');
+                            ele.addEventListener('mouseenter',()=>{
+                                //console.log(ele);
+                                ele.setAttribute('fill',tinycolor.mix(color0, item.color, 70));
+                                item0.newplayer=ele.innerHTML;
+                            });
+                            ele.addEventListener('mouseleave',()=>{
+                                ele.setAttribute('fill',color0);
+                                if(item0.newplayer==ele.innerHTML)item0.newplayer=null;
+                            });
+                        });
+                    },100);
+                    let funcanc=()=>{
+                        clearTimeout(timeid);
+                        afterclick();
+                    }
+                    g.addEventListener('mouseup',funcanc);
+                    g.addEventListener('mouseleave',funcanc);
+                })
 
                 // 保存动画数据
                 if(ttype[0]=='Loc'){
@@ -3010,86 +3099,89 @@ function mainMain() {
 
     // ----- 弹窗函数：在当前页面内显示广播内容（模态框）-----
 
-    function showBroadcasts() {
-    // 如果已经存在弹窗，先移除
-        const existing = document.getElementById('broadcastPopupOverlay');
-        if (existing) existing.remove();
+    async function showBroadcasts() {
+        return new Promise((resolve) => {
+            const existing = document.getElementById('broadcastPopupOverlay');
+            if (existing) existing.remove();
 
-        const bd1 = document.getElementById('bd1');
-        if (!bd1||!bd1.innerHTML.trim()) {
-            return;
-        }
-
-        const overlay = document.createElement('div');
-        overlay.id = 'broadcastPopupOverlay';
-        overlay.className = 'popup-overlay';
-
-        const popup = document.createElement('div');
-        popup.className = 'popup-container';
-
-        const header = document.createElement('div');
-        header.className = 'popup-header';
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'broadcasts';
-        contentDiv.innerHTML = bd1.innerHTML;
-
-        let title = document.createElement('text');
-        title.innerText = '请确认本回合广播：';
-        title.style.color = '#fff';
-
-        header.appendChild(title);
-        popup.appendChild(header);
-        popup.appendChild(contentDiv);
-
-        let buttonDiv = document.createElement('div');
-        buttonDiv.className = 'popup-buttons';
-
-        let copyButton = document.createElement('button');
-        copyButton.innerText = '复制到剪贴板';
-        copyButton.addEventListener('click', async() => {
-            const textLines = Array.from(contentDiv.querySelectorAll('.broadcast'))
-                                   .map(el => el.innerText.trim())
-                                   .filter(text => text !== ''); // 过滤掉空行
-            const rawText = textLines.join('\n');
-
-            const processedText = eraseBracket(rawText);
-
-            try {
-                
-                await navigator.clipboard.writeText(processedText);
-            } catch (err) {
-                console.error('复制到剪贴板失败: ', err);
-                alert('无法写入剪贴板，请检查浏览器权限。');
+            const bd1 = document.getElementById('bd1');
+            if (!bd1||!bd1.innerHTML.trim()) {
+                resolve();
+                return;
             }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'broadcastPopupOverlay';
+            overlay.className = 'popup-overlay';
+
+            const popup = document.createElement('div');
+            popup.className = 'popup-container';
+
+            const header = document.createElement('div');
+            header.className = 'popup-header';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'broadcasts';
+            contentDiv.innerHTML = bd1.innerHTML;
+            bd1.innerHTML = '';
+
+            let title = document.createElement('text');
+            title.innerText = '请确认本回合广播：';
+            title.style.color = '#fff';
+
+            header.appendChild(title);
+            popup.appendChild(header);
+            popup.appendChild(contentDiv);
+
+            let buttonDiv = document.createElement('div');
+            buttonDiv.className = 'popup-buttons';
+
+            let copyButton = document.createElement('button');
+            copyButton.innerText = '复制到剪贴板';
+            copyButton.addEventListener('click', async() => {
+                const textLines = Array.from(contentDiv.querySelectorAll('.broadcast'))
+                                    .map(el => el.innerText.trim())
+                                    .filter(text => text !== ''); // 过滤掉空行
+                const rawText = textLines.join('\n');
+
+                const processedText = eraseBracket(rawText);
+
+                try {
+                    
+                    await navigator.clipboard.writeText(processedText);
+                } catch (err) {
+                    console.error('复制到剪贴板失败: ', err);
+                    alert('无法写入剪贴板，请检查浏览器权限。');
+                }
+            });
+
+            buttonDiv.appendChild(copyButton);
+
+            const closeButton = document.createElement('button');
+            closeButton.innerText = '完成';
+            closeButton.setAttribute("id","closeButton");
+            closeButton.addEventListener('click', () => {
+                bd1.innerHTML = contentDiv.innerHTML;
+                resolve();
+                overlay.remove();
+            });
+            buttonDiv.appendChild(closeButton);
+
+            let shuffleButton = document.createElement('button');
+            shuffleButton.innerText = '打乱';
+            shuffleButton.addEventListener('click', () => {
+                const items = contentDiv.querySelectorAll('.broadcast');
+                const shuffled = Array.from(items).sort(() => RANDOM() - 0.5);
+                shuffled.forEach(item => contentDiv.appendChild(item));
+            });
+
+            buttonDiv.appendChild(shuffleButton);
+
+            popup.appendChild(buttonDiv);
+
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
         });
-
-        buttonDiv.appendChild(copyButton);
-
-        const closeButton = document.createElement('button');
-        closeButton.innerText = '完成';
-        closeButton.setAttribute("id","closeButton");
-        closeButton.addEventListener('click', () => {
-            overlay.remove();
-        });
-        buttonDiv.appendChild(closeButton);
-
-        let shuffleButton = document.createElement('button');
-        shuffleButton.innerText = '打乱';
-        shuffleButton.addEventListener('click', () => {
-            const items = contentDiv.querySelectorAll('.broadcast');
-            const shuffled = Array.from(items).sort(() => RANDOM() - 0.5);
-            shuffled.forEach(item => contentDiv.appendChild(item));
-        });
-
-        buttonDiv.appendChild(shuffleButton);
-
-        popup.appendChild(buttonDiv);
-
-        overlay.appendChild(popup);
-        document.body.appendChild(overlay);
-
-        //console.log(overlay);
     };
 
     // ----- 弹窗函数：编辑 mapMap 的 JSON 数据 -----
@@ -3671,6 +3763,7 @@ function mainMain() {
                             //console.log(key1);
                             let key1li=key1.split("_");
                             //console.log(cond,key,key1li);
+                            Mods[key2][key1li[0]]=Mods[key2][key1li[0]]||[];
                             Mods[key2][key1li[0]].push({cond:cond,lamda:ele[key][key1],preventDefault:("additional"!=key1li[1])});
                         }
                     });
@@ -3805,7 +3898,7 @@ function mainMain() {
         getDoor, getNotPortal, getPortal, hexarc, getLocenter, getPath, getImageUrlFromSvg, copySvgAsPngToClipboard,
         isValidCSSColor, shareEdge, swapRom, eraseBracket, title, initLocs, initMapData, createG,
         initDoor, drawDoor, initPlayers, addItems, getLoc, setDoor, drawNames, getCross,
-        clearMechan, drawPlayers, switchNormalMode, defaultLocMaskAction, getButton,
+        clearMechan, drawPlayers, callInnerRandom, switchNormalMode, defaultLocMaskAction, getButton,
         switchRoundMode, LocMaskEvent, reAttriAllPolygons, isNum, isSubseq, getLocorRom,
         killPlayer, sortVisdots, parseColor, getColor, switchMoveMode, createShrinkingCircle,
         getRoundColor, drawRoundInfo, drawPlayerInfo, caculateDis, mechanAct,
