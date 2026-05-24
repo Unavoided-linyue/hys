@@ -140,14 +140,17 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“有电/没电”处添加更衣室图标",
                         cond:item=>(item.name=="有电"||item.name=="没电"),
                         src:"n2rom1.svg"
                     },
                     icon_2:{
+                        func:"在标记“电门”处添加电门图标",
                         cond:item=>(item.name=="电门"),
                         src:"n2rom29.svg"
                     },
                     mechan:{
+                        func:"给予名为“电门”的标记功能",
                         cond:(item)=>item.name=='电门',
                         result:(item)=>{
                             if(item.used){
@@ -169,6 +172,7 @@ let mods = (main)=>{
                         }
                     },
                     item:{
+                        func:"自动切换“有电/没电”标记状态",
                         cond:(item)=>item.name=="有电"||item.name=="没电",
                         info:(item)=>{
                             let info=document.getElementById('info');
@@ -200,6 +204,7 @@ let mods = (main)=>{
                         }
                     },
                     item:{
+                        func:"给予名为“小熊”的标记功能",
                         cond:(item)=>item.name=="小熊",
                         info_additional:(item)=>{
                             main.getButton(tinycolor.mix(item.color,"#fff",50),"使用",()=>{
@@ -219,10 +224,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“有毒/没毒”处添加毒气图标",
                         cond:item=>(item.name=="有毒"||item.name=="没毒"),
                         src:"n2rom25.svg"
                     },
                     item:{
+                        func:"给予名为“霰弹”的标记功能",
                         cond:(item)=>item.name=='霰弹',
                         info_additional:(item)=>{
                             main.getButton(tinycolor.mix(item.color,"#fff",50),"开枪",()=>{
@@ -249,6 +256,7 @@ let mods = (main)=>{
                         }
                     },
                     item_2:{
+                        func:"自动切换“有毒/没毒”标记状态",
                         cond:(item)=>item.name=="毒气"||item.name=="没毒",
                         info:(item)=>{
                             let info=document.getElementById('info');
@@ -279,10 +287,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“觉醒”处添加觉醒机关图标",
                         cond:item=>(item.name=="觉醒"),
                         src:"n2rom35.svg"
                     },
                     mechan:{
+                        func:"给予名为“觉醒”的标记功能",
                         cond:(item)=>item.name=='觉醒',
                         click_additional:(item)=>{
                             let str=prompt("请输入目标房间。留空默认为东餐。");
@@ -320,10 +330,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“扑克”处添加图标",
                         cond:item=>(item.name=="扑克"),
                         src:"n2rom33.svg"
                     },
                     mechan:{
+                        func:"给予名为“扑克”的标记功能",
                         cond:(item)=>item.name=='扑克',
                         click_additional:(item)=>{
                             let str=prompt("请输入一对目标位置。留空默认为 9 和 10。");
@@ -365,10 +377,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“壁炉”处添加图标",
                         cond:item=>(item.name=="壁炉"),
                         src:"n2rom3.svg"
                     },
                     mechan:{
+                        func:"给予名为“壁炉”的标记功能",
                         cond:(item)=>item.name=='壁炉',
                         click_additional:(item)=>{
                             main.addItems([{
@@ -409,10 +423,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“麦克”处添加图标",
                         cond:item=>(item.name=="麦克"),
                         src:"n2rom19.svg"
                     },
                     mechan:{
+                        func:"给予名为“麦克”的标记功能，也提供了修改全局广播的方式",
                         cond:(item)=>item.name=='麦克',
                         click:(item)=>{
                             const existing = document.getElementById('broadcastPopupOverlay');
@@ -504,10 +520,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“魔方”处添加图标",
                         cond:item=>(item.name=='魔方'),
                         src:"n2rom18.svg"
                     },
                     mechan:{
+                        func:"给予名为“魔方”的标记功能",
                         cond:(item)=>item.name=='魔方',
                         result:(item)=>{
                             if(item.used){
@@ -534,10 +552,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“黑暗”处添加图标",
                         cond:item=>(item.name=="黑暗"),
                         src:"n2rom24.svg"
                     },
                     item:{
+                        func:"给予名为“黑暗”的标记功能",
                         cond:(item)=>item.name=='黑暗'||item.name=='明亮',
                         info:(item)=>{
                             let info=document.getElementById('info');
@@ -574,29 +594,30 @@ let mods = (main)=>{
                         },
                     },
                     stepend:{
-                            priority:1,
-                            fun:()=>{
-                                let isDark=new Map();
-                                mapMap.items.forEach((item)=>{
-                                    if(item.name=="黑暗"){
-                                        if(item.ty!="Player")isDark[main.getLoc({ty:item.ty,val:item.val})]=true;
+                        func:"令与黑暗标记同房间的物品无法发现",
+                        priority:1,
+                        fun:()=>{
+                            let isDark=new Map();
+                            mapMap.items.forEach((item)=>{
+                                if(item.name=="黑暗"){
+                                    if(item.ty!="Player")isDark[main.getLoc({ty:item.ty,val:item.val})]=true;
+                                }
+                            })
+                            //console.log(isDark);
+                            mapMap.items.forEach((item)=>{
+                                if(item.name=="黑暗")return;
+                                if(item.ty!="Player"){
+                                    if(isDark[main.getLoc({ty:item.ty,val:item.val})]){
+                                        //console.log(item);
+                                        if(!Object.prototype.hasOwnProperty.call(item,"invisible"))item.invisible="黑暗";
                                     }
-                                })
-                                //console.log(isDark);
-                                mapMap.items.forEach((item)=>{
-                                    if(item.name=="黑暗")return;
-                                    if(item.ty!="Player"){
-                                        if(isDark[main.getLoc({ty:item.ty,val:item.val})]){
-                                            //console.log(item);
-                                            if(!Object.prototype.hasOwnProperty.call(item,"invisible"))item.invisible="黑暗";
-                                        }
-                                        else{
-                                            if(item.invisible=="黑暗")Reflect.deleteProperty(item,"invisible");
-                                        }
+                                    else{
+                                        if(item.invisible=="黑暗")Reflect.deleteProperty(item,"invisible");
                                     }
-                                })
-                            }
-                        },
+                                }
+                            })
+                        }
+                    },
                 },
                 ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
                     name:Name,
@@ -605,6 +626,7 @@ let mods = (main)=>{
                         main.defaultConfig(dom,str,src());
                     },
                     roundend:{
+                        func:`在 R${src().round} 结束时生成开锁器`,
                         priority:100000000,
                         fun:()=>{
                             if(mapMap.Round!=src().round)return;
@@ -623,6 +645,7 @@ let mods = (main)=>{
                         }
                     },
                     item:{
+                        func:"给予名为“开锁”的标记功能",
                         cond:(item)=>item.name=='开锁',
                         info:(item)=>{
                             let info=document.getElementById('info');
@@ -684,10 +707,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“死歌”处添加图标",
                         cond:item=>(item.name=="死歌"),
                         src:"n2rom36.svg"
                     },
                     item:{
+                        func:"给予名为“十字”的标记功能",
                         cond:(item)=>item.name=='十字',
                         result:(item)=>{
                             //console.log("???");
@@ -697,6 +722,64 @@ let mods = (main)=>{
                         }
                     }
                 },
+                ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                    name:Name,
+                    config:(dom)=>{
+                        let str="R[round:5] 结束以后播报大堂位置，同时身份为 [chara:黑影:string] 的人始终知道大堂位置。"
+                        main.defaultConfig(dom,str,src());
+                    },
+                    name:"大堂",
+                    init:{
+                        priority:0,
+                        fun:()=>{
+                            main.addItems([
+                                {"Rom":7,"color":8,"name":"大堂","alwaysInvisible":true},
+                                {"Rom":7,"color":8,"name":`${src().chara}可见位置`,"alwaysInvisible":true},
+                            ]);
+                        }
+                    },
+                    icon_1:{
+                        func:"在标记“大堂”处添加图标",
+                        cond:item=>(item.name=="大堂"),
+                        src:"n2rom7.svg"
+                    },
+                    roundend:{
+                        func:"R5之后的每回合结束时广播大堂位置",
+                        priority:1,
+                        fun:()=>{
+                            mapMap.items.forEach((item)=>{
+                                if(!item.name.toString().includes("可见位置"))return;
+                                let char0=item.name.replace("可见位置","");
+                                let locex=main.getItemActual(item,"Loc");
+                                let Loc0=mapMap.Locs.find(Loc=>Loc.id==locex);
+                                mapMap.Players.forEach((player)=>{
+                                    if(char0.includes(player.character)){
+                                        if(!Loc0.visPlayer.includes(player.id)){
+                                            Loc0.visPlayer.push(player.id);
+                                        }
+                                    }
+                                });
+                            })
+                            if(mapMap.Round>=5){
+                                let locex=main.getItemActual(mapMap.items.find((item)=>item.name=="大堂"),"Loc");
+                                let Loc0=mapMap.Locs.find(Loc=>Loc.id==locex);
+                                let flag=1;
+                                mapMap.Players.forEach((player)=>{
+                                    if(player.dead)return;
+                                    if(!Loc0.visPlayer.includes(player.id)){
+                                        Loc0.visPlayer.push(player.id);
+                                        flag=0;
+                                    }
+                                });
+                                if(!flag){
+                                    let bc=main.getbc("exitloc");
+                                    bc=bc.replaceAll("[loc]",`${locex}`);
+                                    main.broadcast(bc);
+                                }
+                            }
+                        }
+                    }
+                }})("大堂"),
                 {
                     name:"其他道具和图标（金币望远变装大堂档案室连廊301）",
                     init:{
@@ -706,26 +789,24 @@ let mods = (main)=>{
                                 {"Rom":16,"color":2,"name":"金币"},
                                 {"Rom":17,"color":4,"name":"望远"},
                                 {"Rom":23,"color":7,"name":"变装"},
-                                {"Rom":7,"color":8,"name":"大堂","alwaysInvisible":true},
                                 {"Rom":47,"color":8,"name":"档案室","alwaysInvisible":true},
                                 {"Rom":14,"color":8,"name":"301","alwaysInvisible":true},
                                 {"Rom":49,"color":8,"name":"连廊","alwaysInvisible":true}
                             ]);
                         }
                     },
-                    icon_1:{
-                        cond:item=>(item.name=="大堂"),
-                        src:"n2rom7.svg"
-                    },
                     icon_2:{
+                        func:"在标记“档案室”处添加图标",
                         cond:item=>(item.name=="档案室"),
                         src:"n2rom47.svg"
                     },
                     icon_3:{
+                        func:"在标记“301”处添加图标",
                         cond:item=>(item.name=="301"),
                         src:"n2rom14.svg"
                     },
                     icon_4:{
+                        func:"在标记“连廊”处添加图标",
                         cond:item=>(item.name=="连廊"),
                         src:"n2rom49.svg"
                     }
@@ -735,6 +816,7 @@ let mods = (main)=>{
                     config:(dom)=>{
                     },
                     init:{
+                        func:"设置优先级和阶段步数",
                         priority:100,
                         fun:()=>{
                             const existing = document.getElementById('broadcastPopupOverlay');
@@ -922,10 +1004,12 @@ let mods = (main)=>{
                         }
                     },
                     icon:{
+                        func:"在标记“重启”处添加图标",
                         cond:item=>(item.name=="重启"),
                         src:"n2rom44.svg"
                     },
                     mechan:{
+                        func:"给予名为“重启”的标记功能",
                         cond:(item)=>item.name=='重启',
                         click:(item)=>{
                             if(STATUS.ty!="normal"&&(!item.used||item.used=="主持")){
@@ -989,10 +1073,11 @@ let mods = (main)=>{
                 ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
                     name:Name,
                     config:(dom)=>{
-                        main.defaultConfig(dom,`请设定不同身份的行动顺序。从第 0 回合开始，[order:玩家 布莉萝、黑影:string] 轮流行动。（不同回合间用顿号分隔，同回合间用空格分隔）`,src());
+                        main.defaultConfig(dom,`请设定不同身份的行动顺序。从第 0 回合开始，[order:黑影、玩家 布莉萝:string] 轮流行动。（不同回合间用顿号分隔，同回合间用空格分隔）`,src());
                         main.defaultConfig(dom,`要使用 DATA 设定吗？(Y/N) [usedata:Y:string]`,src());
                     },
                     roundend:{
+                        func:"回合结束时进行广播",
                         priority:1000000000000000000000000000000000000000000000000,
                         fun:()=>{
                             if(mapMap.Round>=-1){
@@ -1040,6 +1125,7 @@ let mods = (main)=>{
                             }
                         },
                         mechan:{
+                            func:"给予名为“打乱”的标记功能",
                             cond:(item)=>item.name=='打乱',
                             click:(item)=>{
                                 if(STATUS.ty!="normal"&&(!item.used||item.used=="主持")){
@@ -1100,6 +1186,7 @@ let mods = (main)=>{
                             }
                         },
                         roundend:{
+                            func:"回合结束时进行DATA广播",
                             priority:10,
                             fun:()=>{
                                 if(mapMap.Round>=-1){
@@ -1167,6 +1254,7 @@ let mods = (main)=>{
                             }
                         },
                         item:{
+                            func:"将名字为数字的标记视为战力",
                             cond:(item)=>main.isNum(item.name),
                             info:(item)=>{
                                 let info=document.getElementById('info');
@@ -1180,6 +1268,7 @@ let mods = (main)=>{
                             },
                         },
                         stepend:{
+                            func:"自动计算战力",
                             priority:10000000,
                             fun:()=>{
                                 mapMap.Players.forEach((player)=>{
@@ -1202,6 +1291,7 @@ let mods = (main)=>{
                             }
                         },
                         roundend:{
+                            func:"回合结束时广播，同时依据战力排优先级",
                             priority:100000000000000000000000000000000000000000000000000000000,
                             fun:()=>{
                                 let plcbp=[];
@@ -1212,7 +1302,7 @@ let mods = (main)=>{
                                         }
                                     });
                                 });
-                                mapMap.Players.sort((a,b)=>plcbp[a.id]-plcbp[b.id]);
+                                mapMap.Players.sort((a,b)=>(a.dead||0)*(-1000000)-(b.dead||0)*(-1000000)+plcbp[a.id]-plcbp[b.id]);
                                 console.log(mapMap.Players);
                                 mapMap.items.forEach((item)=>{
                                     item.caught=null;
@@ -1246,6 +1336,107 @@ let mods = (main)=>{
                             }
                         }
                     }})("自动算战力（请关闭原有回合广播）"),
+            ]
+        },
+        {
+            name:"5.19战力规则（UNO）",
+            notdefault:true,
+            list:[
+                    ((Name)=>{mapMap.ModsConfig[Name]={};let src=()=>mapMap.ModsConfig[Name];return {
+                        name:Name,
+                        init:{
+                            priority:0,
+                            fun:()=>{
+                                main.addItems([{"Rom":47,"color":9,"name":"UNO"}]);
+                            }
+                        },
+                        config:(dom)=>{
+                        },
+                        item:{
+                            func:"给名为UNO的标记抽牌功能",
+                            cond:(item)=>item.name=="UNO",
+                            info:(item)=>{
+                                let info=document.getElementById('info');
+                                info.innerHTML=`再点一次抽取本回合UNO。`;
+                                mapMap.ModsData.curuno={};
+                            },
+                            click:(item)=>{
+                                mapMap.ModsData.curuno={};
+                                let result=[];
+                                let lis=[
+                                  "0: 你可以一步移到当前所在位置",
+                                  "1: 你可以一步移到本回合途经位置",
+                                  "2: 你可以一步移到编号差1的位置",
+                                  "3: 你可以一步移到有公共面的位置",
+                                  "4: 你可以一步移到任意位置，然后结束回合",
+                                  "5: 你可以一步移到距离为2的位置",
+                                  "6: 你可以一步移到程序界面上同行列的位置",
+                                  "7: 你可以一步移到离自己最远的位置",
+                                  "8: 你可以一步移到随机位置",
+                                  "9: 你可以一步移到背景不为黑色的位置",
+                                  "10: 战力+12，若你未停在起点所在位置,战力减半",
+                                  "11: 战力+12，若你未停在本回合已经过位置,战力减半",
+                                  "12: 战力+12，若你未停在和起点编号差1的位置,战力减半",
+                                  "13: 战力+12，若你未停在和起点有公共面的位置,战力减半",
+                                  "14: 战力+12",
+                                  "15: 战力+12，若你未停在距离起点2步的位置,战力减半",
+                                  "16: 战力+12，若你未停在程序界面上同行列的位置,战力减半",
+                                  "17: 战力+12，若你未停在离起点最远的位置,战力减半",
+                                  "18: 战力+12，若你未停在(RAN),战力减半",
+                                  "19: 战力+12，若你停在起始地图中背景为黑色的位置,战力减半",
+                                  "20: 你可以随时一步探索两次所在位置",
+                                  "21: 你可以随时一步探索两个本回合途经位置",
+                                  "22: 你可以随时一步探索两个和当前位置编号差1的位置",
+                                  "23: 你可以随时一步探索两个和当前位置有公共面的位置",
+                                  "24: 你可以随时一步探索两个任意位置",
+                                  "25: 你可以随时一步探索两个距离为2的位置",
+                                  "26: 你可以随时一步探索两个程序界面上同行列的位置",
+                                  "27: 你可以随时一步探索两个离自己最远的位置",
+                                  "28: 你可以随时一步探索两个随机位置",
+                                  "29: 你可以随时一步探索两个背景不为黑色的位置",
+                                  "30: 每进入一次起点所在位置,战力+6",
+                                  "31: 每进入一次本回合已经过位置,战力+6",
+                                  "32: 每进入一次和起点编号差1的位置,战力+6",
+                                  "33: 每进入一次和起点有公共面但无通路的位置,战力+6",
+                                  "34: 每进入一次任意位置,战力+6",
+                                  "35: 每进入一次距离起点2步的位置,战力+6",
+                                  "36: 每进入一次和起点在程序界面上同行列的位置,战力+6",
+                                  "37: 每进入一次离起点最远的位置,战力+6",
+                                  "38: 每进入一次(RAN),战力+6",
+                                  "39: 每进入一次起始地图中背景不为黑色的位置,战力+6",
+                                  "40: 你可以消耗6战力瞬移到所在位置",
+                                  "41: 你可以消耗6战力瞬移到本回合途经位置",
+                                  "42: 你可以消耗6战力瞬移到编号差1的位置",
+                                  "43: 你可以消耗6战力瞬移到有公共面的位置",
+                                  "44: 你可以消耗6战力瞬移到任意位置",
+                                  "45: 你可以消耗6战力瞬移到距离为2的位置",
+                                  "46: 你可以消耗6战力瞬移到程序界面上同行列的位置",
+                                  "47: 你可以消耗6战力瞬移到离自己最远的位置",
+                                  "48: 你可以消耗6战力瞬移到随机位置",
+                                  "49: 你可以消耗6战力瞬移到背景不为黑色的位置"
+                                ]
+                                mapMap.Players.forEach((player)=>{
+                                    if(player.dead)return;
+                                    let cur=player.Loc;
+                                    console.log(player.name,cur);
+                                    let clis=[],sel;
+                                    for(let i=0;i<lis.length;i++){
+                                        if(i%10==cur%10||Math.floor(i/10)==Math.floor(cur/10)){
+                                            clis.push(i);
+                                        }              
+                                    }
+                                    sel=Math.floor(main.RANDOM()*clis.length);
+                                    result.push({title:player.name,val:lis[clis[sel]],rid:[sel+1,clis.length]});
+                                });
+                                console.log(result);
+                                if(!mapMap.randomHistory)mapMap.randomHistory=[];
+                                let cntt=mapMap.randomHistory.length+1;
+                                mapMap.randomHistory.push({num:cntt,result:result,prompt:"（自动抽取）"});
+                                main.callInnerRandom(result,cntt);
+                                
+                            },
+                        }
+                    }})("UNO抽取"),
             ]
         },
         // {
