@@ -2571,7 +2571,7 @@ function mainMain() {
     let animFrameId = null;
 
     function pickItem(item,player){
-        item.oldTy=item.ty;
+        item.oldTy=(item.ty=='Player'?item.oldTy:item.ty);
         item.ty='Player';
         item.val=player.id;
     }
